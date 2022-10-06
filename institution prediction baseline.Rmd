@@ -273,7 +273,7 @@ data3$cens[data3$study=="ICICLE" & data3$year>4.8]<-0 #0=right censored, 1=event
 data3$year[data3$study=="ICICLE" & data3$year>4.8]<-4.8 #If follow-up time>4.8 then change to 4.8 year
 #Other study
 data3$cens[data3$study!="ICICLE" & data3$year>10]<-0 #0=right censored, 1=event 
-data3$year[data3$study!="ICICLE" & data3$year>10]<-10 #If follow-up time>5 then change to 5 year
+data3$year[data3$study!="ICICLE" & data3$year>10]<-10 #If follow-up time>10 then change to 10 year
 
 
 table(data3$study)
@@ -527,7 +527,8 @@ imp3.2<-imp3%>%
 
 ```{r merge data}
 
-#create id to merge the data, id already created in above
+#create id to merge the data
+data5$id<-seq(nrow(data5))
 
 data5.time<-data5%>%
   select(id,year,cens,idpicc,institutionalised,t,tt)
@@ -573,17 +574,13 @@ PO1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus
 PO2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,k=2,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
 ```
 
-
 ```{r PH model}
 PH0<-flexsurvreg(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,dist = "weibull")
 
 PH1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "hazard")
 
 PH2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,k=2,bknots = c(log(0.1067762),log(9.943874)),scale = "hazard")
-
-
 ```
-
 
 ```{r POPH compare}
 
@@ -607,7 +604,54 @@ BIC(PH2) #2 knots one in 33% one in 67%
 ```
 
 
-```{r stratified cox}
+```{r final model}
+PO1
+```
+
+```{r censor for 5 years}
+
+imp3.temp<-survSplit(Surv(year, cens) ~ ., data = imp3.new, cut = 5,
+                  episode="timegroup")
+imp3.5y<-subset(imp3.temp, timegroup == 1) #only the first 5 year
+```
+
+```{r repeat model in different datasets}
+
+#---leave CamPalGN out----
+
+data5y.1<-imp3.5y%>%
+  filter(clus!="CamPalGN")
+
+data5y.1v<-imp3.5y%>%
+  filter(clus=="CamPalGN")
+
+#refit the select model PO1 in to the first development datasets
+
+model1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=data5y.1,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+
+#survival probabilities
+
+s5.1<-predict(model1,type = "survival",times = 5) #survival probabilities at 5 year
+
+#add linear predictor in validation datasets
+
+data5y.1v$lp<-predict(model1,newdata = data5y.1v)
+
+
+
+#---leave ICICLE out---
+
+
+
+
+
+levels(imp3.5y$clus)
+
+```
+
+
+
+```{r not run yet stratified cox}
 
 cox.s<-coxph(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+strata(clus),data=imp3.new)
 
@@ -616,32 +660,4 @@ basehaz(cox.s)
 
 AIC(cox.s)
 BIC(cox.s)
-
-
-
-```
-
-
-```{r final model}
-
-PO1.C
-
-
-
-predict()
-```
-
-
-```{r }
-PO1.C$res[c("studyICICLE"),c("est","se")]
-
-
-```
-
-```{r }
-
-#Q1: should I choose single impuation or not?
-
-#Q2: so I select the model in 6 datdsets, after that, I censor at 5 year? Then what I do is I should get another 5 models used different 5 datasets and leave one datasets as validation? And how do I get the C statistics? use mean?
-
 ```
