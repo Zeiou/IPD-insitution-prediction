@@ -1,0 +1,647 @@
+---
+title: "IPD prediction"
+output: html_document
+date: '2022-09-07'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r library}
+library(dplyr)
+library(tidyr)
+library(Hmisc)
+library(jomo)
+library(haven)
+library(lubridate)
+library(finalfit)
+library(mice)
+library(mitools)
+library(rms)
+library(mitml)
+library(survminer)
+library(patchwork) #Arrange plot
+library(ggplot2)
+library(GGally)
+library(gridExtra)
+library(kableExtra)
+library(metafor)
+library(png)
+library(meta)
+library(grid)
+library(flexsurv)
+```
+
+```{r data}
+data<-read_dta("PICC institutionalisation.dta")
+
+write.csv(data,"data.csv",row.names = F)  # need to be csv file, otherwise it fails
+datanew<-read.csv("data.csv")  #import data again
+
+
+#Update data: PCP66 is a male, baseline age is 74.8
+
+datanew$sex[datanew$originalid=="PCP66"]<-0  #male is 0
+datanew$agebl[datanew$originalid=="PCP66"]<-74.8
+
+
+
+#age at baseline, sex, smoking status, co-morbidity, living alone, type of accommodation, presence of hallucinations, presence of cognitive symptoms, falls, MDS-UPDRS part III score (converted from UPDRS part III as applicable), H&Y stage, MMSE score, Schwab and England scale
+
+#presence of hallucinations needs mdsupdrsbl102hallucinations and updrsblitem2thoughtdisorders
+
+#presence of cognitive symptoms needs mdsupdrsbl101cognitive and updrsblitem1intellectual
+
+
+data1<-datanew%>%
+  select(study,idpicc,originalid, agebl,agediagnosis, sex, smoking, charlsonbl,livesalonebl,accommodationbl,mdsupdrsbl102hallucinations,updrsblitem2thoughtdisorders,mdsupdrsbl101cognitive,updrsblitem1intellectual,updrsblitem13falling,mdsupdrspart3bltotalconvertedasa,hybl,mmsebltotal,sebl,dependentadlbl2,updrsblitem10dressing,updrsblitem9cuttingfood,updrsblitem11hygiene,updrsblitem15walking,mdsupdrsbl204eating,mdsupdrsbl205dressing,mdsupdrsbl206hygiene,mdsupdrsbl212walking,institutionalised,dateinstitution,datediagnosis,datevisitbl,losttofollowup,datedeath,datelost,enddateinstitutionalised)  
+
+
+
+
+#------Create index for hallucinations------
+
+data1$updrshallucinations<-ifelse(data1$mdsupdrsbl102hallucinations>0,1,0)  # 1=yes,0=no
+
+data1$updrsthoughtdisorders<-ifelse(data1$updrsblitem2thoughtdisorders>1,1,0)  # 1=yes (2-4),0=no (0-1)
+
+data1<-data1 %>%
+      mutate(hallucinationsindex=updrshallucinations)%>%           
+      mutate(hallucinationsindex=coalesce(hallucinationsindex,updrsthoughtdisorders)) #if updrshallucinations not find then use updrsthoughtdisorders
+
+
+#-----Create index for cognitive---------
+
+#summary(data1$mdsupdrsbl101cognitive)
+#summary(data1$updrsblitem2thoughtdisorders)
+
+
+data1$mdsupdrsbl101cognitive[data1$mdsupdrsbl101cognitive>1]<-1     
+data1$updrsblitem1intellectual[data1$updrsblitem1intellectual>1]<-1
+data1<-data1 %>%
+      mutate(cognitiveindex=mdsupdrsbl101cognitive)%>%           
+      mutate(cognitiveindex=coalesce(cognitiveindex,updrsblitem1intellectual))  # 0=no,1=yes
+
+
+table(data$study,data$mdsupdrsbl101cognitive)
+table(data$study,data$updrsblitem1intellectual)
+
+#-------------create index for falls-----------
+
+data1$updrsblitem13falling[data1$updrsblitem13falling>1&!is.na(data1$updrsblitem13falling)]<-1
+
+#summary(data1$updrsblitem13falling)
+
+
+#----Create smoking----
+
+data1$smoking[data1$smoking<3&!is.na(data1$smoking)]<-1  #Ever smoker
+data1$smoking[data1$smoking==3&!is.na(data1$smoking)]<-0  #Never smoker
+#summary(data1$smoking)
+
+
+
+#-----Create activities----
+
+#table(data1$updrsblitem15walking) there is not 4 in PICC data, don't need to change updrs walking
+
+data1$updrsblitem15walking[data1$updrsblitem15walking==4]<-3
+
+#table(data1$mdsupdrsbl212walking) 18 patients have 3 and 2 patients have 4
+
+data1$mdsupdrsbl212walking[data1$mdsupdrsbl212walking==3]<-2
+data1$mdsupdrsbl212walking[data1$mdsupdrsbl212walking==4]<-3
+
+#table(data1$mdsupdrsbl212walking) 
+
+data1<-data1%>%
+  mutate(mdsactivities=mdsupdrsbl205dressing+mdsupdrsbl204eating+mdsupdrsbl206hygiene+mdsupdrsbl212walking)
+
+#table(data1$mdsactivities)
+
+
+data1<-data1%>%
+  mutate(updractivities=updrsblitem10dressing+updrsblitem11hygiene+updrsblitem9cuttingfood+updrsblitem15walking)
+
+#table(data1$updractivities)
+
+
+data1<-data1 %>%
+      mutate(activities=mdsactivities)%>%           
+      mutate(activities=coalesce(activities,updractivities))  
+
+#table(data1$activities)
+
+#A<-data1%>%
+# filter(study=="PINE" & is.na(activities))
+
+
+#---Redefine Sebl---
+
+table(data1$study,data1$sebl)  #1 in PINE is 65, 3 in NYPUM and 9 in PINE is 85, 14 in NYPUM and 28 in PINE is 95, 2 in PINE is 100
+
+data1$sebl[data1$sebl==65]<-60
+data1$sebl[data1$sebl==85]<-80
+data1$sebl[data1$sebl==95]<-90
+data1$sebl[data1$sebl==98]<-100
+
+#-----Factor---
+
+
+data1$study<-factor(data1$study,
+                    levels = c(1,2,3,4,5,6),
+                    labels= c("CamPalGN","ICICLE","NYPUM","ParkWest","PICNICS","PINE"))
+
+summary(data1$study)  
+
+
+data1$sex<-factor(data1$sex,
+                  levels = c(0,1),
+                  labels = c("male","female"))
+
+
+data1$smoking <- factor(data1$smoking, 
+                        levels=c(0,1),
+                        labels=c("Never smoker", "Ever smoker"))
+
+
+data1$livesalonebl<-factor(data1$livesalonebl,
+                           levels=c(0,1),
+                           labels = c("lives alone","lives with other(s)"))
+
+
+data1$fall<-factor(data1$updrsblitem13falling,
+                   levels = c(0,1),
+                   labels = c("no","yes")) 
+
+
+
+data1$hallucinationsindex<-factor(data1$hallucinationsindex,
+                                  levels = c(0,1),
+                                  labels = c("no","yes"))  
+
+
+data1$cognitiveindex<-factor(data1$cognitiveindex,
+                            levels = c(0,1),
+                            labels = c("no","yes"))
+
+
+
+data1$accommodationbl<-factor(data1$accommodationbl,
+                              levels = c(1,2,3,4),
+                              labels = c("At home","Nursing home","Other","Sheltered housing")) 
+
+
+
+data1$dependentadlbl2<-factor(data1$dependentadlbl2,
+                              levels = c(0,1),
+                              labels = c("independency","dependency")) #Is it?
+
+
+
+
+
+```
+
+
+```{r follow-up}
+
+#PICNICS PCP66 change datedeath to enddateinstitutionalised, cos this patient didn't enter into institution
+
+data1$enddateinstitutionalised[data1$originalid=="PCP66"]<-data1$datedeath[data1$originalid=="PCP66"]
+
+
+data1<-data1 %>%
+  mutate(t=dateinstitution)%>%           
+  mutate(t=coalesce(t,enddateinstitutionalised))
+
+sum(is.na(data1$t)) #37 missing, patients do not have date of institution/ end date of institution 
+
+#A<-data1%>%
+#  filter(is.na(t))%>%
+#  select(study,idpicc,originalid, institutionalised,enddateinstitutionalised,datelost,datedeath)
+
+#table(A$study)
+
+
+#sum(A$institutionalised,na.rm = T)  #35 patients know entered in the nursing home but don't know when
+
+#2 patients in CamPalGN without any information of instituionlisation record
+
+
+35+2+26
+
+#Remove those patients with missing t, 1109-38=1071
+
+data1<-data1%>%
+  filter(!is.na(t)) #now 1072 patients in data
+
+data1$cens<-ifelse(is.na(data1$dateinstitution),0,1)  #0=right censored, 1=event 
+
+data1$tt<-as.Date(as.character(data1$t), format="%Y-%m-%d")-
+                as.Date(as.character(data1$datevisitbl), format="%Y-%m-%d")
+
+data1$tt<-as.numeric(data1$tt)
+
+data1$year<-data1$tt/365.25
+
+
+#A<-data1%>%
+#  filter(data1$tt<=0) 
+
+#table(A$study)  #To see how many in different study
+
+#Only keep those follow-up time >0
+data1<-data1%>%
+  filter(data1$tt>0) #1046 removed 26 patients 
+
+
+
+#summary(data$study)  #1109 patients in original data
+#summary(data1$study)  #After remove, now 1045 patients in data 
+
+#Surv(data1$year,data1$cens) 0=right censored, 1=event checking
+
+#--------Change censor 10y and 4.8y---------
+
+data3<-data1 #create data3
+
+#ICICLE study
+data3$cens[data3$study=="ICICLE" & data3$year>4.8]<-0 #0=right censored, 1=event 
+data3$year[data3$study=="ICICLE" & data3$year>4.8]<-4.8 #If follow-up time>4.8 then change to 4.8 year
+#Other study
+data3$cens[data3$study!="ICICLE" & data3$year>10]<-0 #0=right censored, 1=event 
+data3$year[data3$study!="ICICLE" & data3$year>10]<-10 #If follow-up time>5 then change to 5 year
+
+
+table(data3$study)
+
+```
+
+```{r only keep variables needed}
+
+#colnames(data1) data1 is without change
+data4<-data1[,c(1:4,6,16:18,29:30,45:48)] #Only keep variables needed   
+
+#colnames(data4)
+#summary(data4)
+
+#data3 is change 4.8y/10y censor
+data5<-data3[,c(1:4,6,16:18,29:30,45:48)] #Only keep variables needed
+
+#colnames(data5)
+#summary(data5)
+
+data6<-data5[,c(1,4:8)] #check how many row with missing value
+
+sum(apply(data6, 1, anyNA)) #30 missing
+
+30/1046*100  #2.9%
+
+data6%>%
+  group_by(study)%>%
+  summarise(sum(is.na(mdsupdrspart3bltotalconvertedasa)),sum(is.na(mmsebltotal))) #PICNICS miss 7 mds-updrs and 1 mmse
+                                                                                  #PINE miss 1 mds-updrs and 15 mmse
+data6%>%
+  group_by(study)%>%
+  filter(is.na(mdsupdrspart3bltotalconvertedasa)|is.na(mmsebltotal))%>%
+  select(study,mdsupdrspart3bltotalconvertedasa,mmsebltotal) #There is no one both missing
+
+```
+
+
+```{r missing pattern}
+
+#----With sebl----
+
+data.rename<-data5%>%
+  rename("Age at baseline"=agebl, 
+         "Sex"=sex, 
+         "MDS-UPDRS part3"=mdsupdrspart3bltotalconvertedasa,
+         "Hoehn and Yahr Scale"=hybl,
+         "MMSE"=mmsebltotal
+         )
+
+explanatory<-c("MDS-UPDRS part3","MMSE") 
+dependent<- c("cens","tt")
+
+
+mispattern<-data.rename %>% 
+  missing_pattern(explanatory)
+
+
+
+png("missingp1.png",width = 7000,height =4000,res = 400)
+
+data.rename %>% 
+  missing_pattern(explanatory)
+
+dev.off()
+
+```
+
+
+```{r jomo}
+
+data5$cons<-1
+
+data5$nelsonaalen<-nelsonaalen(data5,year,cens) #0 is right censor,1 is event
+
+Y<- data5[,c("mdsupdrspart3bltotalconvertedasa","mmsebltotal")] 
+
+X<-data5[,c("cons","agebl","sex","hybl","nelsonaalen")] #adding Nelson-Aalen estimate  
+
+clus<-data5$study
+
+imp.dry<-jomo.MCMCchain(Y = Y,X = X,clus = clus, nburn = 2)
+
+set.seed(15678)
+imp1 <- jomo.MCMCchain(Y = Y, X = X, clus = clus, nburn = 5000)
+
+
+#head(imp1$collectbeta) # check beta
+
+
+#plot trace for each parameter value
+
+#png("Jomo1.png",width = 3500,height =2000,res = 400)
+
+#par(mfrow=c(1,2))
+
+plot(imp1$collectbeta[1, 1, 1:5000], type = "l", ylab = expression(beta["MDS-UPDRS,0"]),
+     xlab = "Iteration number" )
+
+plot(imp1$collectbeta[1, 2, 1:5000], type = "l", ylab = expression(beta["MMSE,0"]),
+     xlab = "Iteration number" )
+
+#plot trace for cov matrix element
+#imp1$collectomega[,,1] #check the row and col name
+#Category variable don't need to plot, just a straight line
+
+plot(imp1$collectomega[1, 1, 1:5000], type = "l", ylab = expression(omega[MDS-UPDRS,1,1]^2),
+     xlab = "Iteration number" )
+
+plot(imp1$collectomega[2, 2, 1:5000], type = "l", ylab = expression(omega[MMSE,1,1]^2),
+     xlab = "Iteration number" )
+
+
+#dev.off()
+
+
+# Capture the state of the sampler as starting values for the second set of iterations:
+beta.start <- imp1$collectbeta[,,5000] # capture the fixed parameter values
+l1cov.start <- imp1$collectomega[,,5000] # capture the level-1 covariance matrix values
+start.imp <- imp1$finimp.latnorm # capture the final imputed data set 
+
+
+
+#Re-run the same function for a larger number of iterations
+imp2 <- jomo.MCMCchain(Y = Y, X = X, clus = clus, beta.start = beta.start, l1cov.start = l1cov.start,
+                       start.imp = start.imp, nburn = 5000)
+
+# Check the trace again
+
+#png("Jomo2.png",width = 3500,height =2000,res = 400)
+
+#par(mfrow=c(2,4))
+
+plot(imp2$collectbeta[1, 1, 1:5000], type = "l", ylab = expression(beta["mdsupdrspart3,0"]),
+     xlab = "Iteration number" )
+
+plot(imp2$collectbeta[1, 2, 1:5000], type = "l", ylab = expression(beta["mmse,0"]),
+     xlab = "Iteration number" )
+
+#plot trace for cov matrix element
+
+plot(imp2$collectomega[1, 1, 1:5000], type = "l", ylab = expression(omega[mdsupdrspart3,1,1]^2),
+     xlab = "Iteration number" )
+
+plot(imp2$collectomega[2, 2, 1:5000], type = "l", ylab = expression(omega[mmse,1,1]^2),
+     xlab = "Iteration number" )
+
+
+#dev.off()
+
+#collect posterior mean of cov matrix
+l1cov.guess <- apply(imp2$collectomega, c(1, 2), mean)
+
+#dim(imp2$collectomega[,,1])
+
+# Multiply by degrees of freedom to get scale matrix
+l1cov.prior <- l1cov.guess*2
+
+# Perform multilevel imputation:
+imp3 <- jomo(Y = Y, X = X, clus = clus, l1cov.prior = l1cov.prior, nburn = 5000, nbetween = 1000, nimp =3,meth = "random" )  
+
+
+```
+
+
+```{r not run compare then single imputation}
+
+#Because only 22 missing MMSE, 8 missing MDS-UPDRS
+
+data5%>%
+  group_by(study)%>%
+  filter(is.na(mmsebltotal))%>%
+  summarise(n()) # 6 in NYPUM, 1 in PICNICS, 15 in PINE
+
+data5$id<-seq(nrow(data5))  
+
+data5%>%
+   group_by(study)%>%
+   filter(is.na(mmsebltotal))%>%
+   select(id)#see id
+
+
+data5%>%
+  group_by(study)%>%
+  filter(is.na(mdsupdrspart3bltotalconvertedasa))%>%
+  summarise(n())  # 7 in PICNICS, 1 in PINE
+
+data5%>%
+  group_by(study)%>%
+  filter(is.na(mdsupdrspart3bltotalconvertedasa))%>%
+  select(id)
+
+#Check the jomo to see if the value impute is the similar
+
+imp3%>%
+  filter(id==286|id==289|id==294|id==310|id==351|id==384)%>%
+  group_by(Imputation)%>%
+  select(mmsebltotal,Imputation)  #mmse range from 25-30
+
+data5%>%
+  filter(study=="NYPUM")%>%
+  summarise(mean(mmsebltotal,na.rm=T),median(mmsebltotal,na.rm=T)) #mean=28.55 median=29
+
+imp3%>%
+  filter(id==764)%>%
+  group_by(Imputation)%>%
+  select(mmsebltotal,Imputation)
+
+
+data5%>%
+  filter(study=="PICNICS")%>%
+  summarise(mean(mmsebltotal,na.rm=T),median(mmsebltotal,na.rm=T)) #mean=28.68 median=29
+
+
+imp3%>%
+  filter(id==847|id==886|id==900|id==913|id==926|id==933|id==954|id==965|id==979|id==1005|id==1012|id==1015|id==1023|id==1032|id==1037)%>%
+  group_by(Imputation)%>%
+  select(mmsebltotal,Imputation)
+
+data5%>%
+  filter(study=="PINE")%>%
+  summarise(mean(mmsebltotal,na.rm=T),median(mmsebltotal,na.rm=T)) #mean=28.12 median=29
+
+#Impute medain to mmse
+
+imp3%>%
+  filter(id==578|id==667|id==692|id==697|id==757|id==765|id==766)%>%
+  group_by(Imputation)%>%
+  select(mdsupdrspart3bltotalconvertedasa,Imputation) #Big range???
+
+data5%>%
+  filter(study=="PICNICS")%>%
+  summarise(mean(mdsupdrspart3bltotalconvertedasa,na.rm=T),median(mdsupdrspart3bltotalconvertedasa,na.rm=T)) #mean=30,median=29
+
+imp3%>%
+  filter(id==973)%>%
+  group_by(Imputation)%>%
+  select(mdsupdrspart3bltotalconvertedasa,Imputation)
+
+
+data5%>%
+  filter(study=="PINE")%>%
+  summarise(mean(mdsupdrspart3bltotalconvertedasa,na.rm=T),median(mdsupdrspart3bltotalconvertedasa,na.rm=T)) #mean=32,median=31.1
+```
+
+```{r Choose one imputation datasets to use}
+imp3.2<-imp3%>%
+  filter(Imputation==2)
+  
+```
+
+```{r merge data}
+
+#create id to merge the data, id already created in above
+
+data5.time<-data5%>%
+  select(id,year,cens,idpicc,institutionalised,t,tt)
+
+imp3.new<-merge(imp3.2,data5.time,by.x = "id",by.y = "id")
+```
+
+
+```{r prepare data before model}
+
+imp3.new$age10<-imp3.new$agebl/10
+
+imp3.new$mdsupdrs3.10<-imp3.new$mdsupdrspart3bltotalconvertedasa/10
+
+summary(imp3.new)  #mmse has >30
+
+imp3.new$mmsebltotal[imp3.new$mmsebltotal>30&!is.na(imp3.new$mmsebltotal)]<-30
+
+#I am now need to do one-stage IPD-meta, therefore, should all in one data sets and stratified by study
+
+```
+
+
+```{r knots}
+
+data5%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))
+  
+#maximum event time 9.943874 year
+#minimum event time 0.1067762	year
+
+log(9.943874)  #Kmax
+log(0.1067762) #Kmin
+```
+
+```{r PO model}
+
+PO0<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,k=0,scale = "odds") #log-logistic model
+
+PO1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+
+PO2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,k=2,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+```
+
+
+```{r PH model}
+PH0<-flexsurvreg(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,dist = "weibull")
+
+PH1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "hazard")
+
+PH2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,k=2,bknots = c(log(0.1067762),log(9.943874)),scale = "hazard")
+
+
+```
+
+
+```{r POPH compare}
+
+AIC(PO0) 
+AIC(PO1) #1 knots in median
+AIC(PO2) #2 knots one in 33% one in 67%
+
+BIC(PO0) 
+BIC(PO1) #1 knots in median
+BIC(PO2) #2 knots one in 33% one in 67%
+
+
+AIC(PH0) 
+AIC(PH1) #1 knots in median
+AIC(PH2) #2 knots one in 33% one in 67%
+
+BIC(PH0) 
+BIC(PH1) #1 knots in median
+BIC(PH2) #2 knots one in 33% one in 67%
+
+```
+
+
+```{r stratified cox}
+
+cox.s<-coxph(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+strata(clus),data=imp3.new)
+
+
+basehaz(cox.s)
+
+AIC(cox.s)
+BIC(cox.s)
+
+
+
+```
+
+
+```{r final model}
+
+PO1.C
+
+
+
+predict()
+```
+
+
+```{r }
+PO1.C$res[c("studyICICLE"),c("est","se")]
+
+
+```
+
+```{r }
+
+#Q1: should I choose single impuation or not?
+
+#Q2: so I select the model in 6 datdsets, after that, I censor at 5 year? Then what I do is I should get another 5 models used different 5 datasets and leave one datasets as validation? And how do I get the C statistics? use mean?
+
+```

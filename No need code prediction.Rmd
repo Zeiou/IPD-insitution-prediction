@@ -1,0 +1,56 @@
+---
+title: "Untitled"
+output: html_document
+date: '2022-10-06'
+---
+
+```{r complete cases prepare data}
+
+data7<-data5[complete.cases(data5[,c(1,4:8,12,14)]),] #1016 patients
+
+sum(data5$cens) #event 253
+sum(data7$cens) #event 241
+#if use complete then will lose 12 events
+
+data7$age10<-data7$agebl/10
+
+data7$mdsupdrs3.10<-data7$mdsupdrspart3bltotalconvertedasa/10
+
+```
+
+```{r POPH model with complete cases}
+
+PO0.C<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+study,data=data7,k=0,scale = "odds") #log-logistic model
+
+PO1.C<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+study,data=data7,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+
+PO2.C<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+study,data=data7,k=2,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+
+PH0.C<-flexsurvreg(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+study,data=data7,dist = "weibull")
+
+PH1.C<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+study,data=data7,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "hazard")
+
+PH2.C<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+study,data=data7,k=2,bknots = c(log(0.1067762),log(9.943874)),scale = "hazard")
+
+
+```
+
+```{r POPH compare}
+
+AIC(PO0.C) 
+AIC(PO1.C) #1 knots in median
+AIC(PO2.C) #2 knots one in 33% one in 67%
+
+BIC(PO0.C) 
+BIC(PO1.C) #1 knots in median
+BIC(PO2.C) #2 knots one in 33% one in 67%
+
+
+AIC(PH0.C) 
+AIC(PH1.C) #1 knots in median
+AIC(PH2.C) #2 knots one in 33% one in 67%
+
+BIC(PH0.C) 
+BIC(PH1.C) #1 knots in median
+BIC(PH2.C) #2 knots one in 33% one in 67%
+```
