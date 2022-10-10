@@ -54,3 +54,260 @@ BIC(PH0.C)
 BIC(PH1.C) #1 knots in median
 BIC(PH2.C) #2 knots one in 33% one in 67%
 ```
+
+
+```{r not run compare then single imputation}
+
+#Because only 22 missing MMSE, 8 missing MDS-UPDRS
+
+data5%>%
+  group_by(study)%>%
+  filter(is.na(mmsebltotal))%>%
+  summarise(n()) # 6 in NYPUM, 1 in PICNICS, 15 in PINE
+
+data5$id<-seq(nrow(data5))  
+
+data5%>%
+   group_by(study)%>%
+   filter(is.na(mmsebltotal))%>%
+   select(id)#see id
+
+
+data5%>%
+  group_by(study)%>%
+  filter(is.na(mdsupdrspart3bltotalconvertedasa))%>%
+  summarise(n())  # 7 in PICNICS, 1 in PINE
+
+data5%>%
+  group_by(study)%>%
+  filter(is.na(mdsupdrspart3bltotalconvertedasa))%>%
+  select(id)
+
+#Check the jomo to see if the value impute is the similar
+
+imp3%>%
+  filter(id==286|id==289|id==294|id==310|id==351|id==384)%>%
+  group_by(Imputation)%>%
+  select(mmsebltotal,Imputation)  #mmse range from 25-30
+
+data5%>%
+  filter(study=="NYPUM")%>%
+  summarise(mean(mmsebltotal,na.rm=T),median(mmsebltotal,na.rm=T)) #mean=28.55 median=29
+
+imp3%>%
+  filter(id==764)%>%
+  group_by(Imputation)%>%
+  select(mmsebltotal,Imputation)
+
+
+data5%>%
+  filter(study=="PICNICS")%>%
+  summarise(mean(mmsebltotal,na.rm=T),median(mmsebltotal,na.rm=T)) #mean=28.68 median=29
+
+
+imp3%>%
+  filter(id==847|id==886|id==900|id==913|id==926|id==933|id==954|id==965|id==979|id==1005|id==1012|id==1015|id==1023|id==1032|id==1037)%>%
+  group_by(Imputation)%>%
+  select(mmsebltotal,Imputation)
+
+data5%>%
+  filter(study=="PINE")%>%
+  summarise(mean(mmsebltotal,na.rm=T),median(mmsebltotal,na.rm=T)) #mean=28.12 median=29
+
+#Impute medain to mmse
+
+imp3%>%
+  filter(id==578|id==667|id==692|id==697|id==757|id==765|id==766)%>%
+  group_by(Imputation)%>%
+  select(mdsupdrspart3bltotalconvertedasa,Imputation) #Big range???
+
+data5%>%
+  filter(study=="PICNICS")%>%
+  summarise(mean(mdsupdrspart3bltotalconvertedasa,na.rm=T),median(mdsupdrspart3bltotalconvertedasa,na.rm=T)) #mean=30,median=29
+
+imp3%>%
+  filter(id==973)%>%
+  group_by(Imputation)%>%
+  select(mdsupdrspart3bltotalconvertedasa,Imputation)
+
+
+data5%>%
+  filter(study=="PINE")%>%
+  summarise(mean(mdsupdrspart3bltotalconvertedasa,na.rm=T),median(mdsupdrspart3bltotalconvertedasa,na.rm=T)) #mean=32,median=31.1
+```
+
+
+```{r repeat model in different datasets}
+
+#Create dummy variable in dataset for clus
+imp3.5y$Cam<-ifelse(imp3.5y$clus=="CamPalGN",1,0)
+imp3.5y$IC<-ifelse(imp3.5y$clus=="ICICLE",1,0)
+imp3.5y$NY<-ifelse(imp3.5y$clus=="NYPUM",1,0)
+imp3.5y$PA<-ifelse(imp3.5y$clus=="ParkWest",1,0)
+imp3.5y$PIC<-ifelse(imp3.5y$clus=="PICNICS",1,0)
+imp3.5y$PIN<-ifelse(imp3.5y$clus=="PINE",1,0)
+
+#Not working, error:Error in form.model.matrix(x, as.data.frame(newdata), na.action = na.action) : Values of covariates "IC", "NY", "PA", "PIC", "PIN" not supplied in "newdata"
+#another problem is the model estimate is not the same use filter, strange
+
+#filter not working cos new level in the validation datasets
+
+
+model<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+Cam+IC+NY+PA+PIC+PIN,data=imp3.5y,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+
+subset(imp3.5y,is.na(imp3.5y))
+
+
+#---leave CamPalGN out----
+
+
+#Keep CamPalGN level in the development data but not run in the model
+
+data5y.1<-imp3.5y
+data5y.1[with(data5y.1,clus=="CamPalGN"),]<-NA
+data5y.1$clus<-imp3.5y$clus 
+
+
+#validation data is CamPalGN
+
+data5y.1v<-imp3.5y
+data5y.1v[with(data5y.1,clus!="CamPalGN"),]<-NA
+data5y.1v$clus<-imp3.5y$clus  
+
+#Change the max and min event time for boundary knots
+
+data5y.1%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))  
+
+
+#refit model
+model1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+clus,data=data5y.1,k=1,bknots = c(log(0.1067762),log(4.939083)),scale = "odds")
+
+#linear predictor
+lp<-predict(model1,newdata = data5y.1v,type="lp")
+
+
+
+data5y.1<-imp3.5y%>%
+  filter(clus!="CamPalGN")
+
+data5y.1v<-imp3.5y%>%
+  filter(clus=="CamPalGN")
+
+model1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.1,k=1,bknots = c(log(0.1067762),log(4.939083)),scale = "odds")
+
+h0<-predict(model1,newdata = data5y.1v,type="hazard",times=5)  
+h<-predict(model1,newdata = data5y.1v,type="cumhaz",times=5)  
+
+hd<-h[[2]]-h0[[2]]
+
+pl.1<-log(hd)
+
+
+#survival probabilities
+
+s5.1<-predict(model1,type = "survival",times = 5) #survival probabilities at 5 year
+
+#add linear predictor in validation datasets
+
+lp<-predict(model1,newdata = data5y.1v,type="lp")
+#Error in form.model.matrix(x, as.data.frame(newdata), na.action = na.action) : 
+#  Values of covariates "IC", "NY", "PA", "PIC", "PIN" not supplied in "newdata"
+
+data5y.1v$lp<-lp[[1]]
+
+
+# Harrell's C
+harrell_C_1v <- concordance(Surv(year,cens) ~ pl.1, 
+                              data5y.1v, 
+                               reverse = TRUE)
+# Uno's C
+Uno_C_1v <- concordance(Surv(year,cens) ~ lp, 
+                           data5y.1v, 
+                           reverse = TRUE,
+                           timewt = "n/G2")
+
+
+#Question, is when validated the model, you don't need to sepearate the study in the development study? Otherwise how can you validate cos the level in two dataset is different, even use dummy variable, the variable needs to put in the model is still not the same. Unless
+
+#Since the problem is there is a new level in the validation datasets, and the level is to be the different study, what if I trick it. 
+
+data5y.1<-imp3.5y%>%
+  filter(clus!="CamPalGN")
+
+model1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+clus,data=data5y.1,k=1,bknots = c(log(0.1067762),log(4.939083)),scale = "odds")
+
+data5y.1v<-imp3.5y%>%
+  filter(clus=="CamPalGN")
+
+data5y.1v$clus<-"ICICLE"  #Cos CamPalGN is new level and cannot run in the validation datasets, so we trick it to run, the point is the development datasets have different levels in study, but the validation only has one study so it works the same. And the study is to give different intercept
+
+lp.1<-predict(model1,newdata = data5y.1v,type="lp")
+
+data5y.1v$lp<-lp.1[[1]]
+
+
+# Harrell's C
+harrell_C_1v <- concordance(Surv(year,cens) ~ lp, 
+                              data5y.1v, 
+                               reverse = TRUE)
+# Uno's C
+Uno_C_1v <- concordance(Surv(year,cens) ~ lp, 
+                           data5y.1v, 
+                           reverse = TRUE,
+                           timewt = "n/G2")
+
+
+#---leave ICICLE out---
+
+data5y.2<-imp3.5y%>%
+  filter(clus!="ICICLE")
+
+#Change the max and min event time for boundary knots
+
+data5y.2%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))  
+
+
+model2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+clus,data=data5y.2,k=1,bknots = c(log(0.1067762),log(4.939083)),scale = "odds")
+
+data5y.2v<-imp3.5y%>%
+  filter(clus=="ICICLE")
+
+data5y.2v$clus<-"NYPUM"  #so we trick it to run, the point is the development datasets have different levels in study, but the validation only has one study so it works the same. And the study is to give different intercept
+
+lp.2<-predict(model2,newdata = data5y.2v,type="lp")
+
+data5y.2v$lp<-lp.2[[1]]
+
+
+# Harrell's C
+harrell_C_2v <- concordance(Surv(year,cens) ~ lp, 
+                              data5y.2v, 
+                               reverse = TRUE)
+# Uno's C
+Uno_C_2v <- concordance(Surv(year,cens) ~ lp, 
+                           data5y.2v, 
+                           reverse = TRUE,
+                           timewt = "n/G2")
+
+#Try another
+
+
+data5y.1<-imp3.5y%>%
+  filter(clus!="CamPalGN")
+
+model1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+clus,data=data5y.1,k=1,bknots = c(log(0.1067762),log(4.939083)),scale = "odds")
+
+data5y.1v<-imp3.5y%>%
+  filter(clus=="CamPalGN")
+
+model1$opt
+
+
+
+
+
+```

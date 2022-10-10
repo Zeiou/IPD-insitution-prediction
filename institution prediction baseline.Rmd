@@ -32,6 +32,7 @@ library(png)
 library(meta)
 library(grid)
 library(flexsurv)
+library(pacman)
 ```
 
 ```{r data}
@@ -439,85 +440,6 @@ imp3 <- jomo(Y = Y, X = X, clus = clus, l1cov.prior = l1cov.prior, nburn = 5000,
 ```
 
 
-```{r not run compare then single imputation}
-
-#Because only 22 missing MMSE, 8 missing MDS-UPDRS
-
-data5%>%
-  group_by(study)%>%
-  filter(is.na(mmsebltotal))%>%
-  summarise(n()) # 6 in NYPUM, 1 in PICNICS, 15 in PINE
-
-data5$id<-seq(nrow(data5))  
-
-data5%>%
-   group_by(study)%>%
-   filter(is.na(mmsebltotal))%>%
-   select(id)#see id
-
-
-data5%>%
-  group_by(study)%>%
-  filter(is.na(mdsupdrspart3bltotalconvertedasa))%>%
-  summarise(n())  # 7 in PICNICS, 1 in PINE
-
-data5%>%
-  group_by(study)%>%
-  filter(is.na(mdsupdrspart3bltotalconvertedasa))%>%
-  select(id)
-
-#Check the jomo to see if the value impute is the similar
-
-imp3%>%
-  filter(id==286|id==289|id==294|id==310|id==351|id==384)%>%
-  group_by(Imputation)%>%
-  select(mmsebltotal,Imputation)  #mmse range from 25-30
-
-data5%>%
-  filter(study=="NYPUM")%>%
-  summarise(mean(mmsebltotal,na.rm=T),median(mmsebltotal,na.rm=T)) #mean=28.55 median=29
-
-imp3%>%
-  filter(id==764)%>%
-  group_by(Imputation)%>%
-  select(mmsebltotal,Imputation)
-
-
-data5%>%
-  filter(study=="PICNICS")%>%
-  summarise(mean(mmsebltotal,na.rm=T),median(mmsebltotal,na.rm=T)) #mean=28.68 median=29
-
-
-imp3%>%
-  filter(id==847|id==886|id==900|id==913|id==926|id==933|id==954|id==965|id==979|id==1005|id==1012|id==1015|id==1023|id==1032|id==1037)%>%
-  group_by(Imputation)%>%
-  select(mmsebltotal,Imputation)
-
-data5%>%
-  filter(study=="PINE")%>%
-  summarise(mean(mmsebltotal,na.rm=T),median(mmsebltotal,na.rm=T)) #mean=28.12 median=29
-
-#Impute medain to mmse
-
-imp3%>%
-  filter(id==578|id==667|id==692|id==697|id==757|id==765|id==766)%>%
-  group_by(Imputation)%>%
-  select(mdsupdrspart3bltotalconvertedasa,Imputation) #Big range???
-
-data5%>%
-  filter(study=="PICNICS")%>%
-  summarise(mean(mdsupdrspart3bltotalconvertedasa,na.rm=T),median(mdsupdrspart3bltotalconvertedasa,na.rm=T)) #mean=30,median=29
-
-imp3%>%
-  filter(id==973)%>%
-  group_by(Imputation)%>%
-  select(mdsupdrspart3bltotalconvertedasa,Imputation)
-
-
-data5%>%
-  filter(study=="PINE")%>%
-  summarise(mean(mdsupdrspart3bltotalconvertedasa,na.rm=T),median(mdsupdrspart3bltotalconvertedasa,na.rm=T)) #mean=32,median=31.1
-```
 
 ```{r Choose one imputation datasets to use}
 imp3.2<-imp3%>%
@@ -615,7 +537,7 @@ imp3.temp<-survSplit(Surv(year, cens) ~ ., data = imp3.new, cut = 5,
 imp3.5y<-subset(imp3.temp, timegroup == 1) #only the first 5 year
 ```
 
-```{r repeat model in different datasets}
+```{r Harrell Uno}
 
 #---leave CamPalGN out----
 
@@ -625,39 +547,513 @@ data5y.1<-imp3.5y%>%
 data5y.1v<-imp3.5y%>%
   filter(clus=="CamPalGN")
 
-#refit the select model PO1 in to the first development datasets
+#Boundary knots location
+data5y.1%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))  
 
-model1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=data5y.1,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+
+#refit model
+model1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.1,k=1,bknots = c(log(0.1067762),log(4.939083)),scale = "odds")
 
 #survival probabilities
-
 s5.1<-predict(model1,type = "survival",times = 5) #survival probabilities at 5 year
+
+#linear predictor
+
+h0.1<-predict(model1,newdata = data5y.1v,type="hazard",times=5)  #H0(t=5)
+h.1<-predict(model1,newdata = data5y.1v,type="cumhaz",times=5)   #H(t=5)
+
+lp.1<-log(h.1[[2]]-h0.1[[2]]) #H(t)=H0(t)*exp(lp)
 
 #add linear predictor in validation datasets
 
-data5y.1v$lp<-predict(model1,newdata = data5y.1v)
+data5y.1v$lp.1<-lp.1
+
+# Harrell's C
+harrell_C_1v <- concordance(Surv(year,cens) ~ lp.1, 
+                              data5y.1v, 
+                               reverse = TRUE)
+# Uno's C
+Uno_C_1v<- concordance(Surv(year,cens) ~ lp.1, 
+                           data5y.1v, 
+                           reverse = TRUE,
+                           timewt = "n/G2")
+
+#---leave ICICLE out----
 
 
+data5y.2<-imp3.5y%>%
+  filter(clus!="ICICLE")
 
-#---leave ICICLE out---
+data5y.2v<-imp3.5y%>%
+  filter(clus=="ICICLE")
+
+#Boundary knots location
+data5y.2%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))  
 
 
+#refit model
+model2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.2,k=1,bknots = c(log(0.1067762),log(4.939083)),scale = "odds")
+
+#survival probabilities
+s5.2<-predict(model2,type = "survival",times = 5) #survival probabilities at 5 year
+
+#linear predictor
+
+h0.2<-predict(model2,newdata = data5y.2v,type="hazard",times=5)  #H0(t=5)
+h.2<-predict(model2,newdata = data5y.2v,type="cumhaz",times=5)   #H(t=5)
+
+lp.2<-log(h.2[[2]]-h0.2[[2]]) #H(t)=H0(t)*exp(lp)
+
+#add linear predictor in validation datasets
+
+data5y.2v$lp.2<-lp.2
+
+# Harrell's C
+harrell_C_2v <- concordance(Surv(year,cens) ~ lp.2, 
+                              data5y.2v, 
+                               reverse = TRUE)
+# Uno's C
+Uno_C_2v<- concordance(Surv(year,cens) ~ lp.2, 
+                           data5y.2v, 
+                           reverse = TRUE,
+                           timewt = "n/G2")
 
 
+#---leave NYPUM out----
 
-levels(imp3.5y$clus)
+data5y.3<-imp3.5y%>%
+  filter(clus!="NYPUM")
+
+data5y.3v<-imp3.5y%>%
+  filter(clus=="NYPUM")
+
+#Boundary knots location
+data5y.3%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))  
+
+#refit model
+model3<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.3,k=1,bknots = c(log(0.1067762),log(4.903491)),scale = "odds")
+
+#survival probabilities
+s5.3<-predict(model3,type = "survival",times = 5) #survival probabilities at 5 year
+
+#linear predictor
+
+h0.3<-predict(model3,newdata = data5y.3v,type="hazard",times=5)  #H0(t=5)
+h.3<-predict(model3,newdata = data5y.3v,type="cumhaz",times=5)   #H(t=5)
+
+lp.3<-log(h.3[[2]]-h0.3[[2]]) #H(t)=H0(t)*exp(lp)
+
+#add linear predictor in validation datasets
+
+data5y.3v$lp.3<-lp.3
+
+# Harrell's C
+harrell_C_3v <- concordance(Surv(year,cens) ~ lp.3, 
+                              data5y.3v, 
+                               reverse = TRUE)
+# Uno's C
+Uno_C_3v<- concordance(Surv(year,cens) ~ lp.3, 
+                           data5y.3v, 
+                           reverse = TRUE,
+                           timewt = "n/G2")
+
+
+#---leave ParkWest out----
+
+data5y.4<-imp3.5y%>%
+  filter(clus!="ParkWest")
+
+data5y.4v<-imp3.5y%>%
+  filter(clus=="ParkWest")
+
+#Boundary knots location
+data5y.4%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))  
+
+#refit model
+model4<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.4,k=1,bknots = c(log(0.1067762),log(4.939083)),scale = "odds")
+
+#survival probabilities
+s5.4<-predict(model4,type = "survival",times = 5) #survival probabilities at 5 year
+
+#linear predictor
+
+h0.4<-predict(model4,newdata = data5y.4v,type="hazard",times=5)  #H0(t=5)
+h.4<-predict(model4,newdata = data5y.4v,type="cumhaz",times=5)   #H(t=5)
+
+lp.4<-log(h.4[[2]]-h0.4[[2]]) #H(t)=H0(t)*exp(lp)
+
+#add linear predictor in validation datasets
+
+data5y.4v$lp.4<-lp.4
+
+# Harrell's C
+harrell_C_4v <- concordance(Surv(year,cens) ~ lp.4, 
+                              data5y.4v, 
+                               reverse = TRUE)
+# Uno's C
+Uno_C_4v<- concordance(Surv(year,cens) ~ lp.4, 
+                           data5y.4v, 
+                           reverse = TRUE,
+                           timewt = "n/G2")
+
+
+#---leave PICNICS out----
+
+data5y.5<-imp3.5y%>%
+  filter(clus!="PICNICS")
+
+data5y.5v<-imp3.5y%>%
+  filter(clus=="PICNICS")
+
+#Boundary knots location
+data5y.5%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))  
+
+#refit model
+model5<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.5,k=1,bknots = c(log(0.5557837),log(4.939083)),scale = "odds")
+
+#survival probabilities
+s5.5<-predict(model5,type = "survival",times = 5) #survival probabilities at 5 year
+
+#linear predictor
+
+h0.5<-predict(model5,newdata = data5y.5v,type="hazard",times=5)  #H0(t=5)
+h.5<-predict(model5,newdata = data5y.5v,type="cumhaz",times=5)   #H(t=5)
+
+lp.5<-log(h.5[[2]]-h0.5[[2]]) #H(t)=H0(t)*exp(lp)
+
+#add linear predictor in validation datasets
+
+data5y.5v$lp.5<-lp.5
+
+
+# Harrell's C
+harrell_C_5v <- concordance(Surv(year,cens) ~ lp.5, 
+                              data5y.5v, 
+                               reverse = TRUE)
+# Uno's C
+Uno_C_5v<- concordance(Surv(year,cens) ~ lp.5, 
+                           data5y.5v, 
+                           reverse = TRUE,
+                           timewt = "n/G2")
+
+#---leave PINE out----
+
+data5y.6<-imp3.5y%>%
+  filter(clus!="PINE")
+
+data5y.6v<-imp3.5y%>%
+  filter(clus=="PINE")
+
+#Boundary knots location
+data5y.6%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))  
+
+#refit model
+model6<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.6,k=1,bknots = c(log(0.1067762),log(4.939083)),scale = "odds")
+
+#survival probabilities
+s5.6<-predict(model6,type = "survival",times = 5) #survival probabilities at 5 year
+
+#linear predictor
+
+h0.6<-predict(model6,newdata = data5y.6v,type="hazard",times=5)  #H0(t=5)
+h.6<-predict(model6,newdata = data5y.6v,type="cumhaz",times=5)   #H(t=5)
+
+lp.6<-log(h.6[[2]]-h0.6[[2]]) #H(t)=H0(t)*exp(lp)
+
+#add linear predictor in validation datasets
+
+data5y.6v$lp.6<-lp.6
+
+
+# Harrell's C
+harrell_C_6v <- concordance(Surv(year,cens) ~ lp.6, 
+                              data5y.6v, 
+                               reverse = TRUE)
+# Uno's C
+Uno_C_6v<- concordance(Surv(year,cens) ~ lp.6, 
+                           data5y.6v, 
+                           reverse = TRUE,
+                           timewt = "n/G2")
+```
+
+```{r Time-dependent AUC}
+
+#---leave CamPalGN out----
+
+Uno_1v <-
+  timeROC::timeROC(
+    T = data5y.1v$year, 
+    delta = data5y.1v$cens,
+    marker = data5y.1v$lp.1,
+    cause = 1, 
+    weighting = "marginal", 
+    times = 4.99,
+    iid = TRUE
+  )
+
+
+#---leave ICICLE out----
+
+Uno_2v <-
+  timeROC::timeROC(
+    T = data5y.2v$year, 
+    delta = data5y.2v$cens,
+    marker = data5y.2v$lp.2,
+    cause = 1, 
+    weighting = "marginal", 
+    times = 3.99,
+    iid = TRUE
+  )  
+
+#NA is because ICICILE less than 5 years, so I change to 4 years here.
+
+
+#---leave NYPUM out----
+
+Uno_3v <-
+  timeROC::timeROC(
+    T = data5y.3v$year, 
+    delta = data5y.3v$cens,
+    marker = data5y.3v$lp.3,
+    cause = 1, 
+    weighting = "marginal", 
+    times = 4.99,
+    iid = TRUE
+  )
+
+
+#---leave ParkWest out----
+
+Uno_4v <-
+  timeROC::timeROC(
+    T = data5y.4v$year, 
+    delta = data5y.4v$cens,
+    marker = data5y.4v$lp.4,
+    cause = 1, 
+    weighting = "marginal", 
+    times = 4.99,
+    iid = TRUE
+  )
+
+
+#---leave PICNICS out----
+
+Uno_5v <-
+  timeROC::timeROC(
+    T = data5y.5v$year, 
+    delta = data5y.5v$cens,
+    marker = data5y.5v$lp.5,
+    cause = 1, 
+    weighting = "marginal", 
+    times = 4.99,
+    iid = TRUE
+  )
+
+#---leave PINE out----
+
+Uno_6v <-
+  timeROC::timeROC(
+    T = data5y.6v$year, 
+    delta = data5y.6v$cens,
+    marker = data5y.6v$lp.6,
+    cause = 1, 
+    weighting = "marginal", 
+    times = 4.99,
+    iid = TRUE
+  )
 
 ```
 
 
+```{r Mean calibration}
+
+# Observed / Expected ratio
+t_horizon <- 5
+alpha <- .05
+
+#---leave CamPalGN out----
+
+# Observed
+obj.1 <- summary(survfit(
+  Surv(year, cens) ~ 1, 
+  data = data5y.1v),
+  times = t_horizon)
+
+obs_t.1 <- 1 - obj.1$surv
+
+# Predicted risk 
+data5y.1v$pred <- riskRegression::predictRisk(model1,
+                                          newdata = data5y.1v,
+                                          times = t_horizon)
+# Expected
+exp_t.1 <- mean(data5y.1v$pred)
+
+# Observed / Expected ratio
+OE_t.1 <- obs_t.1 / exp_t.1
+
+OE_summary.1 <- c(
+  "OE" = OE_t.1,
+  "2.5 %" = OE_t.1 * exp(-qnorm(1 - alpha / 2) * sqrt(1 / obj.1$n.event)),
+  "97.5 %" = OE_t.1 * exp(+qnorm(1 - alpha / 2) * sqrt(1 / obj.1$n.event))
+)
+
+OE_summary.1
+
+
+
+#Need to find out the code for predict risk in RP model.
+
+```
+
+```{r Weak calibration}
+
+
+val.1 <- coxph(Surv(year, cens) ~ lp.1, data = data5y.1v)
+
+calslope_summary.1 <- c(
+  "calibration slope" = val.1$coef,
+  "2.5 %"  = val.1$coef - qnorm(1 - alpha / 2) * sqrt(val.1$var),
+  "97.5 %" = val.1$coef + qnorm(1 - alpha / 2) * sqrt(val.1$var)
+)
+
+calslope_summary.1
+
+
+```
+
+```{r  Moderate calibration}
+
+
+
+```
+
 
 ```{r not run yet stratified cox}
 
-cox.s<-coxph(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+strata(clus),data=imp3.new)
+#5 year prediction
+
+
+#---leave CamPalGN out----
+
+data5y.1<-imp3.5y%>%
+  filter(clus!="CamPalGN")
+
+data5y.1v<-imp3.5y%>%
+  filter(clus=="CamPalGN")
+
+
+
+cox.s<-coxph(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal,data=data5y.1)
+
+predict(cox.s,newdata = data5y.1v)
+
+data5y.1v$lp<-predict(cox.s,newdata = data5y.1v,type = "lp")
+
+# Harrell's C
+harrell_C_1v <- concordance(Surv(year,cens) ~ lp, 
+                               data5y.1v, 
+                               reverse = TRUE)
+# Uno's C
+Uno_C_1v <- concordance(Surv(year,cens) ~ lp, 
+                           data5y.1v, 
+                           reverse = TRUE,
+                           timewt = "n/G2")
 
 
 basehaz(cox.s)
 
 AIC(cox.s)
 BIC(cox.s)
+```
+
+```{r not run compare then single imputation}
+
+#Because only 22 missing MMSE, 8 missing MDS-UPDRS
+
+data5%>%
+  group_by(study)%>%
+  filter(is.na(mmsebltotal))%>%
+  summarise(n()) # 6 in NYPUM, 1 in PICNICS, 15 in PINE
+
+data5$id<-seq(nrow(data5))  
+
+data5%>%
+   group_by(study)%>%
+   filter(is.na(mmsebltotal))%>%
+   select(id)#see id
+
+
+data5%>%
+  group_by(study)%>%
+  filter(is.na(mdsupdrspart3bltotalconvertedasa))%>%
+  summarise(n())  # 7 in PICNICS, 1 in PINE
+
+data5%>%
+  group_by(study)%>%
+  filter(is.na(mdsupdrspart3bltotalconvertedasa))%>%
+  select(id)
+
+#Check the jomo to see if the value impute is the similar
+
+imp3%>%
+  filter(id==286|id==289|id==294|id==310|id==351|id==384)%>%
+  group_by(Imputation)%>%
+  select(mmsebltotal,Imputation)  #mmse range from 25-30
+
+data5%>%
+  filter(study=="NYPUM")%>%
+  summarise(mean(mmsebltotal,na.rm=T),median(mmsebltotal,na.rm=T)) #mean=28.55 median=29
+
+imp3%>%
+  filter(id==764)%>%
+  group_by(Imputation)%>%
+  select(mmsebltotal,Imputation)
+
+
+data5%>%
+  filter(study=="PICNICS")%>%
+  summarise(mean(mmsebltotal,na.rm=T),median(mmsebltotal,na.rm=T)) #mean=28.68 median=29
+
+
+imp3%>%
+  filter(id==847|id==886|id==900|id==913|id==926|id==933|id==954|id==965|id==979|id==1005|id==1012|id==1015|id==1023|id==1032|id==1037)%>%
+  group_by(Imputation)%>%
+  select(mmsebltotal,Imputation)
+
+data5%>%
+  filter(study=="PINE")%>%
+  summarise(mean(mmsebltotal,na.rm=T),median(mmsebltotal,na.rm=T)) #mean=28.12 median=29
+
+#Impute medain to mmse
+
+imp3%>%
+  filter(id==578|id==667|id==692|id==697|id==757|id==765|id==766)%>%
+  group_by(Imputation)%>%
+  select(mdsupdrspart3bltotalconvertedasa,Imputation) #Big range???
+
+data5%>%
+  filter(study=="PICNICS")%>%
+  summarise(mean(mdsupdrspart3bltotalconvertedasa,na.rm=T),median(mdsupdrspart3bltotalconvertedasa,na.rm=T)) #mean=30,median=29
+
+imp3%>%
+  filter(id==973)%>%
+  group_by(Imputation)%>%
+  select(mdsupdrspart3bltotalconvertedasa,Imputation)
+
+
+data5%>%
+  filter(study=="PINE")%>%
+  summarise(mean(mdsupdrspart3bltotalconvertedasa,na.rm=T),median(mdsupdrspart3bltotalconvertedasa,na.rm=T)) #mean=32,median=31.1
 ```
