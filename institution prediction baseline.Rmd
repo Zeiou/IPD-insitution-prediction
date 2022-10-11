@@ -564,7 +564,12 @@ s5.1<-predict(model1,type = "survival",times = 5) #survival probabilities at 5 y
 h0.1<-predict(model1,newdata = data5y.1v,type="hazard",times=5)  #H0(t=5)
 h.1<-predict(model1,newdata = data5y.1v,type="cumhaz",times=5)   #H(t=5)
 
-lp.1<-log(h.1[[2]]-h0.1[[2]]) #H(t)=H0(t)*exp(lp)
+lp.1<-log(h.1[[2]]-h0.1[[2]]) 
+
+st.1<-1/exp(-h.1[[2]])
+s0.1<-1/exp(-h0.1[[2]])
+
+lp.1<-log((st.1-1)/(s0.1-1))
 
 #add linear predictor in validation datasets
 
@@ -880,7 +885,6 @@ Uno_6v <-
 ```{r Mean calibration}
 
 # Observed / Expected ratio
-t_horizon <- 5
 alpha <- .05
 
 #---leave CamPalGN out----
@@ -889,16 +893,22 @@ alpha <- .05
 obj.1 <- summary(survfit(
   Surv(year, cens) ~ 1, 
   data = data5y.1v),
-  times = t_horizon)
+  times = 5)
+
+#The observed is estimated using the complementary of the Kaplan-Meier curve at the fixed time point.
 
 obs_t.1 <- 1 - obj.1$surv
 
 # Predicted risk 
-data5y.1v$pred <- riskRegression::predictRisk(model1,
-                                          newdata = data5y.1v,
-                                          times = t_horizon)
+#Expected events=adding up the cumulative hazard
+#The expected count for each subject is defined as the predicted cumulative hazard for the subject, up until event time or censoring
+#predictRisk function When operating on models for survival analysis (without competing risks) the function still predicts the risk, as 1 - S(t|X) where S(t|X) is survival chance of a subject characterized by X.
+
+data5y.1v$pred<-predict(model1,newdata = data5y.1v,type = "survival",times = 5)[[2]]  #survival probabilities
+
 # Expected
-exp_t.1 <- mean(data5y.1v$pred)
+exp_t.1 <-mean(1-data5y.1v$pred) #predicts risk, as 1 - S(t|X)
+
 
 # Observed / Expected ratio
 OE_t.1 <- obs_t.1 / exp_t.1
@@ -912,15 +922,156 @@ OE_summary.1 <- c(
 OE_summary.1
 
 
+#---leave ICICLE out----
 
-#Need to find out the code for predict risk in RP model.
+# Observed
+obj.2 <- summary(survfit(
+  Surv(year, cens) ~ 1, 
+  data = data5y.2v),
+  times = 4)  #ICICLE doesn't have 5 year
+
+obs_t.2 <- 1 - obj.2$surv
+
+# Expected
+
+data5y.2v$pred<-predict(model2,newdata = data5y.2v,type = "survival",times = 4)[[2]]  #survival probabilities
+
+exp_t.2 <-mean(1-data5y.2v$pred) #predicts risk, as 1 - S(t|X)
+
+
+# Observed / Expected ratio
+OE_t.2 <- obs_t.2 / exp_t.2
+
+OE_summary.2 <- c(
+  "OE" = OE_t.2,
+  "2.5 %" = OE_t.2 * exp(-qnorm(1 - alpha / 2) * sqrt(1 / obj.2$n.event)),
+  "97.5 %" = OE_t.2 * exp(+qnorm(1 - alpha / 2) * sqrt(1 / obj.2$n.event))
+)
+
+OE_summary.2
+
+
+#---leave NYPUM out----
+
+# Observed
+obj.3 <- summary(survfit(
+  Surv(year, cens) ~ 1, 
+  data = data5y.3v),
+  times = 5)  
+
+obs_t.3 <- 1 - obj.3$surv
+
+# Expected
+
+data5y.3v$pred<-predict(model3,newdata = data5y.3v,type = "survival",times = 5)[[2]]  #survival probabilities
+
+exp_t.3 <-mean(1-data5y.3v$pred) #predicts risk, as 1 - S(t|X)
+
+# Observed / Expected ratio
+OE_t.3 <- obs_t.3 / exp_t.3
+
+OE_summary.3 <- c(
+  "OE" = OE_t.3,
+  "2.5 %" = OE_t.3 * exp(-qnorm(1 - alpha / 2) * sqrt(1 / obj.3$n.event)),
+  "97.5 %" = OE_t.3 * exp(+qnorm(1 - alpha / 2) * sqrt(1 / obj.3$n.event))
+)
+
+OE_summary.3
+
+
+#---leave ParkWest out----
+
+
+# Observed
+obj.4 <- summary(survfit(
+  Surv(year, cens) ~ 1, 
+  data = data5y.4v),
+  times = 5)  
+
+obs_t.4 <- 1 - obj.4$surv
+
+# Expected
+
+data5y.4v$pred<-predict(model4,newdata = data5y.4v,type = "survival",times = 5)[[2]]  #survival probabilities
+
+exp_t.4 <-mean(1-data5y.4v$pred) #predicts risk, as 1 - S(t|X)
+
+# Observed / Expected ratio
+OE_t.4 <- obs_t.4 / exp_t.4
+
+OE_summary.4 <- c(
+  "OE" = OE_t.4,
+  "2.5 %" = OE_t.4 * exp(-qnorm(1 - alpha / 2) * sqrt(1 / obj.4$n.event)),
+  "97.5 %" = OE_t.4 * exp(+qnorm(1 - alpha / 2) * sqrt(1 / obj.4$n.event))
+)
+
+OE_summary.4
+
+
+#---leave PICNICS out----
+
+# Observed
+obj.5 <- summary(survfit(
+  Surv(year, cens) ~ 1, 
+  data = data5y.5v),
+  times = 5)  
+
+obs_t.5<- 1 - obj.5$surv
+
+# Expected
+
+data5y.5v$pred<-predict(model5,newdata = data5y.5v,type = "survival",times = 5)[[2]]  #survival probabilities
+
+exp_t.5 <-mean(1-data5y.5v$pred) #predicts risk, as 1 - S(t|X)
+
+# Observed / Expected ratio
+OE_t.5 <- obs_t.5 / exp_t.5
+
+OE_summary.5 <- c(
+  "OE" = OE_t.5,
+  "2.5 %" = OE_t.5 * exp(-qnorm(1 - alpha / 2) * sqrt(1 / obj.5$n.event)),
+  "97.5 %" = OE_t.5 * exp(+qnorm(1 - alpha / 2) * sqrt(1 / obj.5$n.event))
+)
+
+OE_summary.5
+
+#---leave PINE out----
+
+# Observed
+obj.6 <- summary(survfit(
+  Surv(year, cens) ~ 1, 
+  data = data5y.6v),
+  times = 5)  
+
+obs_t.6<- 1 - obj.6$surv
+
+# Expected
+
+data5y.6v$pred<-predict(model6,newdata = data5y.6v,type = "survival",times = 5)[[2]]  #survival probabilities
+
+exp_t.6 <-mean(1-data5y.6v$pred) #predicts risk, as 1 - S(t|X)
+
+# Observed / Expected ratio
+OE_t.6 <- obs_t.6 / exp_t.6
+
+OE_summary.6 <- c(
+  "OE" = OE_t.6,
+  "2.5 %" = OE_t.6 * exp(-qnorm(1 - alpha / 2) * sqrt(1 / obj.6$n.event)),
+  "97.5 %" = OE_t.6 * exp(+qnorm(1 - alpha / 2) * sqrt(1 / obj.6$n.event))
+)
+
+OE_summary.6
 
 ```
 
 ```{r Weak calibration}
 
+#Include linear predictor in validation datasets as a predictor
 
-val.1 <- coxph(Surv(year, cens) ~ lp.1, data = data5y.1v)
+
+#---leave CamPalGN out----
+
+val.1 <- coxph(Surv(year, cens) ~ log(lp.1), data = data5y.1v)
 
 calslope_summary.1 <- c(
   "calibration slope" = val.1$coef,
@@ -929,6 +1080,33 @@ calslope_summary.1 <- c(
 )
 
 calslope_summary.1
+
+
+
+#---leave ICICLE out----
+
+val.2 <- coxph(Surv(year, cens) ~ lp.2, data = data5y.2v)
+
+calslope_summary.2 <- c(
+  "calibration slope" = val.2$coef,
+  "2.5 %"  = val.2$coef - qnorm(1 - alpha / 2) * sqrt(val.2$var),
+  "97.5 %" = val.2$coef + qnorm(1 - alpha / 2) * sqrt(val.2$var)
+)
+
+calslope_summary.2
+
+
+#---leave NYPUM out----
+
+val.3 <- coxph(Surv(year, cens) ~ lp.3, data = data5y.3v)
+
+calslope_summary.3 <- c(
+  "calibration slope" = val.3$coef,
+  "2.5 %"  = val.3$coef - qnorm(1 - alpha / 2) * sqrt(val.3$var),
+  "97.5 %" = val.3$coef + qnorm(1 - alpha / 2) * sqrt(val.3$var)
+)
+
+calslope_summary.3
 
 
 ```
