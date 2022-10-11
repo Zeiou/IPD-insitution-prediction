@@ -1071,9 +1071,10 @@ OE_summary.6
 
 #---leave CamPalGN out----
 
-val.1 <- coxph(Surv(year, cens) ~ log(lp.1), data = data5y.1v)
+val.1 <- coxph(Surv(year, cens) ~ lp.1, data = data5y.1v)
 
-calslope_summary.1 <- c(
+
+  calslope_summary.1 <- c(
   "calibration slope" = val.1$coef,
   "2.5 %"  = val.1$coef - qnorm(1 - alpha / 2) * sqrt(val.1$var),
   "97.5 %" = val.1$coef + qnorm(1 - alpha / 2) * sqrt(val.1$var)
