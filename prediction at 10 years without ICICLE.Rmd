@@ -287,37 +287,538 @@ Uno_4v.10 <-
     marker = data10y.4v$lp.4.10,
     cause = 1, 
     weighting = "marginal", 
-    times = 9,
+    times = 6.99,
     iid = TRUE
   )
 
 
-
+#ParkWest has less than 10 years
 
 #---leave PICNICS out----
 
-Uno_5v <-
+Uno_5v.10 <-
   timeROC::timeROC(
-    T = data5y.5v$year, 
-    delta = data5y.5v$cens,
-    marker = data5y.5v$lp.5,
+    T = data10y.5v$year, 
+    delta = data10y.5v$cens,
+    marker = data10y.5v$lp.5.10,
     cause = 1, 
     weighting = "marginal", 
-    times = 4.99,
+    times = 9.99,
     iid = TRUE
   )
 
 #---leave PINE out----
 
-Uno_6v <-
+Uno_6v.10 <-
   timeROC::timeROC(
-    T = data5y.6v$year, 
-    delta = data5y.6v$cens,
-    marker = data5y.6v$lp.6,
+    T = data10y.6v$year, 
+    delta = data10y.6v$cens,
+    marker = data10y.6v$lp.6.10,
     cause = 1, 
     weighting = "marginal", 
-    times = 4.99,
+    times = 9.99,
     iid = TRUE
   )
+
+```
+
+```{r Weak calibration 10 years}
+
+#Include linear predictor in validation datasets as a predictor
+
+alpha<-0.05
+
+#---leave CamPalGN out----
+
+val.1.10 <- coxph(Surv(year, cens) ~ lp.1.10, data = data10y.1v)
+
+
+  calslope_summary.1.10 <- c(
+  "calibration slope" = val.1.10$coef,
+  "2.5 %"  = val.1.10$coef - qnorm(1 - alpha / 2) * sqrt(val.1.10$var),
+  "97.5 %" = val.1.10$coef + qnorm(1 - alpha / 2) * sqrt(val.1.10$var)
+)
+
+calslope_summary.1.10
+
+#---leave NYPUM out----
+
+val.3.10 <- coxph(Surv(year, cens) ~ lp.3.10, data = data10y.3v)
+
+calslope_summary.3.10 <- c(
+  "calibration slope" = val.3.10$coef,
+  "2.5 %"  = val.3.10$coef - qnorm(1 - alpha / 2) * sqrt(val.3.10$var),
+  "97.5 %" = val.3.10$coef + qnorm(1 - alpha / 2) * sqrt(val.3.10$var)
+)
+
+calslope_summary.3.10
+
+
+#---leave ParkWest out----
+
+val.4.10 <- coxph(Surv(year, cens) ~ lp.4.10, data = data10y.4v)
+
+calslope_summary.4.10 <- c(
+  "calibration slope" = val.4.10$coef,
+  "2.5 %"  = val.4.10$coef - qnorm(1 - alpha / 2) * sqrt(val.4.10$var),
+  "97.5 %" = val.4.10$coef + qnorm(1 - alpha / 2) * sqrt(val.4.10$var)
+)
+
+calslope_summary.4.10
+
+
+#---leave PICNICS out----
+
+val.5.10 <- coxph(Surv(year, cens) ~ lp.5.10, data = data10y.5v)
+
+calslope_summary.5.10 <- c(
+  "calibration slope" = val.5.10$coef,
+  "2.5 %"  = val.5.10$coef - qnorm(1 - alpha / 2) * sqrt(val.5.10$var),
+  "97.5 %" = val.5.10$coef + qnorm(1 - alpha / 2) * sqrt(val.5.10$var)
+)
+
+calslope_summary.5.10
+
+
+#---leave PINE out----
+
+val.6.10 <- coxph(Surv(year, cens) ~ lp.6.10, data = data10y.6v)
+
+calslope_summary.6.10 <- c(
+  "calibration slope" = val.6.10$coef,
+  "2.5 %"  = val.6.10$coef - qnorm(1 - alpha / 2) * sqrt(val.6.10$var),
+  "97.5 %" = val.6.10$coef + qnorm(1 - alpha / 2) * sqrt(val.6.10$var)
+)
+
+calslope_summary.6.10
+```
+
+```{r  Moderate calibration 10 years}
+
+#moderate calibration uses smooth curves of predicted risk from a more complex ‘secondary’ Cox model against the predicted risk from the development model 
+
+
+#---leave CamPalGN out----
+
+# predicted risk
+
+data10y.1v$pred<-predict(model1.10,newdata = data10y.1v,type = "survival",times = 10) #survival probabilities
+
+data10y.1v$risk <-(1-data10y.1v$pred[[2]]) #predicted risk, as 1 - S(t|X),the probabilities of events
+
+data10y.1v$risk.cll <- log(-log(1-data10y.1v$risk)) #complementary log-log link
+
+# Estimate actual risk
+
+vcal.1.10 <- cph(Surv(year, cens) ~ rcs(risk.cll, 3),
+                 x = T,
+                 y = T,
+                 surv = T,
+                 data = data10y.1v
+) 
+
+#survest function is to estimate survival probabilities
+
+dat_cal.1.10 <- cbind.data.frame(
+  "obs" = 1 - rms::survest(vcal.1.10,
+                           times = 10,
+                           newdata = data10y.1v)$surv, #1-s(t=5) to get the refitted model predicted risk
+  
+  "lower" = 1 - rms::survest(vcal.1.10,
+                             times = 10,
+                             newdata = data10y.1v)$upper,
+  
+  "upper" = 1 - rms::survest(vcal.1.10,
+                             times = 10,
+                             newdata = data10y.1v)$lower,
+  "pred" = data10y.1v$risk
+)
+
+
+dat_cal.1.10 <- dat_cal.1.10[order(dat_cal.1.10$pred), ]
+
+par(xaxs = "i", yaxs = "i", las = 1)
+plot(
+  x=dat_cal.1.10$pred, #x is predicted risk from the 
+  y=dat_cal.1.10$obs,
+  type = "l", 
+  lty = 1, 
+  xlim = c(0, 1),
+  ylim = c(0, 1), 
+  lwd = 2,
+  xlab = "Predicted risk from developed model",
+  ylab = "Predicted risk from refitted model",  
+  bty = "n" #no box
+)
+
+lines(dat_cal.1.10$pred, 
+      dat_cal.1.10$lower, 
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+lines(dat_cal.1.10$pred, 
+      dat_cal.1.10$upper,
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+abline(0, 1, lwd = 2, lty = 2, col = 2)
+legend("bottomright",
+        c("Ideal calibration",
+          "Calibration curve based on secondary Cox model",
+          "95% confidence interval"),
+        col = c(2, 1, 1),
+        lty = c(2, 1, 2),
+        lwd = c(2, 2, 2),
+        bty = "n",
+        cex = 0.85)
+
+# Numerical measures
+absdiff_cph.1.10 <- abs(dat_cal.1.10$pred - dat_cal.1.10$obs)
+
+numsum_cph.1.10 <- c(
+  "ICI" = mean(absdiff_cph.1.10),
+  setNames(quantile(absdiff_cph.1.10, c(0.5, 0.9)), c("E50", "E90")),
+  "Emax" = max(absdiff_cph.1.10)
+)
+numsum_cph.1.10
+
+
+
+#---leave NYPUM out----
+
+# predicted risk
+
+data10y.3v$pred<-predict(model3.10,newdata = data10y.3v,type = "survival",times = 10) #survival probabilities
+
+data10y.3v$risk <-(1-data10y.3v$pred[[2]]) #predicted risk, as 1 - S(t|X),the probabilities of events
+
+data10y.3v$risk.cll <- log(-log(1-data10y.3v$risk)) #complementary log-log link
+
+# Estimate actual risk
+
+vcal.3.10 <- cph(Surv(year, cens) ~ rcs(risk.cll, 3),
+                 x = T,
+                 y = T,
+                 surv = T,
+                 data = data10y.3v
+) 
+
+#survest function is to estimate survival probabilities
+
+dat_cal.3.10 <- cbind.data.frame(
+  "obs" = 1 - rms::survest(vcal.3.10,
+                           times = 10,
+                           newdata = data10y.3v)$surv, #1-s(t=5) to get the refitted model predicted risk
+  
+  "lower" = 1 - rms::survest(vcal.3.10,
+                             times = 10,
+                             newdata = data10y.3v)$upper,
+  
+  "upper" = 1 - rms::survest(vcal.3.10,
+                             times = 10,
+                             newdata = data10y.3v)$lower,
+  "pred" = data10y.3v$risk
+)
+
+
+dat_cal.3.10 <- dat_cal.3.10[order(dat_cal.3.10$pred), ]
+
+par(xaxs = "i", yaxs = "i", las = 1)
+plot(
+  x=dat_cal.3.10$pred, #x is predicted risk from the 
+  y=dat_cal.3.10$obs,
+  type = "l", 
+  lty = 1, 
+  xlim = c(0, 1),
+  ylim = c(0, 1), 
+  lwd = 2,
+  xlab = "Predicted risk from developed model",
+  ylab = "Predicted risk from refitted model",  
+  bty = "n" #no box
+)
+
+lines(dat_cal.3.10$pred, 
+      dat_cal.3.10$lower, 
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+lines(dat_cal.3.10$pred, 
+      dat_cal.3.10$upper,
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+abline(0, 1, lwd = 2, lty = 2, col = 2)
+legend("bottomright",
+        c("Ideal calibration",
+          "Calibration curve based on secondary Cox model",
+          "95% confidence interval"),
+        col = c(2, 1, 1),
+        lty = c(2, 1, 2),
+        lwd = c(2, 2, 2),
+        bty = "n",
+        cex = 0.85)
+
+# Numerical measures
+absdiff_cph.3.10 <- abs(dat_cal.3.10$pred - dat_cal.3.10$obs)
+
+numsum_cph.3.10 <- c(
+  "ICI" = mean(absdiff_cph.3.10),
+  setNames(quantile(absdiff_cph.3.10, c(0.5, 0.9)), c("E50", "E90")),
+  "Emax" = max(absdiff_cph.3.10)
+)
+numsum_cph.3.10
+
+
+#---leave ParkWest out----
+
+# predicted risk
+
+
+data10y.4v$pred<-predict(model4.10,newdata = data10y.4v,type = "survival",times = 10) #survival probabilities
+
+data10y.4v$risk <-(1-data10y.4v$pred[[2]]) #predicted risk, as 1 - S(t|X),the probabilities of events
+
+data10y.4v$risk.cll <- log(-log(1-data10y.4v$risk)) #complementary log-log link
+
+# Estimate actual risk
+
+vcal.4.10 <- cph(Surv(year, cens) ~ rcs(risk.cll, 3),
+                 x = T,
+                 y = T,
+                 surv = T,
+                 data = data10y.4v
+) 
+
+#survest function is to estimate survival probabilities
+
+dat_cal.4.10 <- cbind.data.frame(
+  "obs" = 1 - rms::survest(vcal.4.10,
+                           times = 10,
+                           newdata = data10y.4v)$surv, #1-s(t=5) to get the refitted model predicted risk
+  
+  "lower" = 1 - rms::survest(vcal.4.10,
+                             times = 10,
+                             newdata = data10y.4v)$upper,
+  
+  "upper" = 1 - rms::survest(vcal.4.10,
+                             times = 10,
+                             newdata = data10y.4v)$lower,
+  "pred" = data10y.4v$risk
+)
+
+
+dat_cal.4.10 <- dat_cal.4.10[order(dat_cal.4.10$pred), ]
+
+par(xaxs = "i", yaxs = "i", las = 1)
+plot(
+  x=dat_cal.4.10$pred, #x is predicted risk from the 
+  y=dat_cal.4.10$obs,
+  type = "l", 
+  lty = 1, 
+  xlim = c(0, 1),
+  ylim = c(0, 1), 
+  lwd = 2,
+  xlab = "Predicted risk from developed model",
+  ylab = "Predicted risk from refitted model",  
+  bty = "n" #no box
+)
+
+lines(dat_cal.4.10$pred, 
+      dat_cal.4.10$lower, 
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+lines(dat_cal.4.10$pred, 
+      dat_cal.4.10$upper,
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+abline(0, 1, lwd = 2, lty = 2, col = 2)
+legend("bottomright",
+        c("Ideal calibration",
+          "Calibration curve based on secondary Cox model",
+          "95% confidence interval"),
+        col = c(2, 1, 1),
+        lty = c(2, 1, 2),
+        lwd = c(2, 2, 2),
+        bty = "n",
+        cex = 0.85)
+
+# Numerical measures
+absdiff_cph.4.10 <- abs(dat_cal.4.10$pred - dat_cal.4.10$obs)
+
+numsum_cph.4.10 <- c(
+  "ICI" = mean(absdiff_cph.4.10),
+  setNames(quantile(absdiff_cph.4.10, c(0.5, 0.9)), c("E50", "E90")),
+  "Emax" = max(absdiff_cph.4.10)
+)
+numsum_cph.4.10
+
+
+#---leave PICNICS out----
+
+data10y.5v$pred<-predict(model5.10,newdata = data10y.5v,type = "survival",times = 10) #survival probabilities
+
+data10y.5v$risk <-(1-data10y.5v$pred[[2]]) #predicted risk, as 1 - S(t|X),the probabilities of events
+
+data10y.5v$risk.cll <- log(-log(1-data10y.5v$risk)) #complementary log-log link
+
+# Estimate actual risk
+
+vcal.5.10 <- cph(Surv(year, cens) ~ rcs(risk.cll, 3),
+                 x = T,
+                 y = T,
+                 surv = T,
+                 data = data10y.5v
+) 
+
+#survest function is to estimate survival probabilities
+
+dat_cal.5.10 <- cbind.data.frame(
+  "obs" = 1 - rms::survest(vcal.5.10,
+                           times = 10,
+                           newdata = data10y.5v)$surv, #1-s(t=5) to get the refitted model predicted risk
+  
+  "lower" = 1 - rms::survest(vcal.5.10,
+                             times = 10,
+                             newdata = data10y.5v)$upper,
+  
+  "upper" = 1 - rms::survest(vcal.5.10,
+                             times = 10,
+                             newdata = data10y.5v)$lower,
+  "pred" = data10y.5v$risk
+)
+
+
+dat_cal.5.10 <- dat_cal.5.10[order(dat_cal.5.10$pred), ]
+
+par(xaxs = "i", yaxs = "i", las = 1)
+plot(
+  x=dat_cal.5.10$pred, #x is predicted risk from the 
+  y=dat_cal.5.10$obs,
+  type = "l", 
+  lty = 1, 
+  xlim = c(0, 1),
+  ylim = c(0, 1), 
+  lwd = 2,
+  xlab = "Predicted risk from developed model",
+  ylab = "Predicted risk from refitted model",  
+  bty = "n" #no box
+)
+
+lines(dat_cal.5.10$pred, 
+      dat_cal.5.10$lower, 
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+lines(dat_cal.5.10$pred, 
+      dat_cal.5.10$upper,
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+abline(0, 1, lwd = 2, lty = 2, col = 2)
+legend("bottomright",
+        c("Ideal calibration",
+          "Calibration curve based on secondary Cox model",
+          "95% confidence interval"),
+        col = c(2, 1, 1),
+        lty = c(2, 1, 2),
+        lwd = c(2, 2, 2),
+        bty = "n",
+        cex = 0.85)
+
+# Numerical measures
+absdiff_cph.5.10 <- abs(dat_cal.5.10$pred - dat_cal.5.10$obs)
+
+numsum_cph.5.10 <- c(
+  "ICI" = mean(absdiff_cph.5.10),
+  setNames(quantile(absdiff_cph.5.10, c(0.5, 0.9)), c("E50", "E90")),
+  "Emax" = max(absdiff_cph.5.10)
+)
+numsum_cph.5.10
+
+#---leave PINE out----
+
+data10y.6v$pred<-predict(model6.10,newdata = data10y.6v,type = "survival",times = 10) #survival probabilities
+
+data10y.6v$risk <-(1-data10y.6v$pred[[2]]) #predicted risk, as 1 - S(t|X),the probabilities of events
+
+data10y.6v$risk.cll <- log(-log(1-data10y.6v$risk)) #complementary log-log link
+
+# Estimate actual risk
+
+vcal.6.10 <- cph(Surv(year, cens) ~ rcs(risk.cll, 3),
+                 x = T,
+                 y = T,
+                 surv = T,
+                 data = data10y.6v
+) 
+
+#survest function is to estimate survival probabilities
+
+dat_cal.6.10 <- cbind.data.frame(
+  "obs" = 1 - rms::survest(vcal.6.10,
+                           times = 10,
+                           newdata = data10y.6v)$surv, #1-s(t=5) to get the refitted model predicted risk
+  
+  "lower" = 1 - rms::survest(vcal.6.10,
+                             times = 10,
+                             newdata = data10y.6v)$upper,
+  
+  "upper" = 1 - rms::survest(vcal.6.10,
+                             times = 10,
+                             newdata = data10y.6v)$lower,
+  "pred" = data10y.6v$risk
+)
+
+
+dat_cal.6.10 <- dat_cal.6.10[order(dat_cal.6.10$pred), ]
+
+par(xaxs = "i", yaxs = "i", las = 1)
+plot(
+  x=dat_cal.6.10$pred, #x is predicted risk from the 
+  y=dat_cal.6.10$obs,
+  type = "l", 
+  lty = 1, 
+  xlim = c(0, 1),
+  ylim = c(0, 1), 
+  lwd = 2,
+  xlab = "Predicted risk from developed model",
+  ylab = "Predicted risk from refitted model",  
+  bty = "n" #no box
+)
+
+lines(dat_cal.6.10$pred, 
+      dat_cal.6.10$lower, 
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+lines(dat_cal.6.10$pred, 
+      dat_cal.6.10$upper,
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+abline(0, 1, lwd = 2, lty = 2, col = 2)
+legend("bottomright",
+        c("Ideal calibration",
+          "Calibration curve based on secondary Cox model",
+          "95% confidence interval"),
+        col = c(2, 1, 1),
+        lty = c(2, 1, 2),
+        lwd = c(2, 2, 2),
+        bty = "n",
+        cex = 0.85)
+
+# Numerical measures
+absdiff_cph.6.10 <- abs(dat_cal.6.10$pred - dat_cal.6.10$obs)
+
+numsum_cph.6.10 <- c(
+  "ICI" = mean(absdiff_cph.6.10),
+  setNames(quantile(absdiff_cph.6.10, c(0.5, 0.9)), c("E50", "E90")),
+  "Emax" = max(absdiff_cph.6.10)
+)
+numsum_cph.6.10
+
+
 
 ```
