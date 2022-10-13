@@ -1,0 +1,323 @@
+---
+title: "10 year without ICICLE"
+output: html_document
+date: '2022-10-13'
+---
+
+```{r 10 years model}
+
+imp3.new10<-imp3.new%>%
+  filter(clus!="ICICLE")
+
+imp3.new10%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))
+  
+PO0.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new10,k=0,scale = "odds") #log-logistic model
+
+PO1.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new10,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+
+PO2.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new10,k=2,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+
+PH0.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new10,k=0,scale = "hazard")
+
+PH1.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new10,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "hazard")
+
+PH2.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new10,k=2,bknots = c(log(0.1067762),log(9.943874)),scale = "hazard")
+```
+
+
+```{r POPH compare 10 years}
+
+AIC(PO0.10) 
+AIC(PO1.10) #1 knots in median
+AIC(PO2.10) #2 knots one in 33% one in 67%
+
+BIC(PO0.10) 
+BIC(PO1.10) #1 knots in median
+BIC(PO2.10) #2 knots one in 33% one in 67%
+
+
+AIC(PH0.10) 
+AIC(PH1.10) #1 knots in median
+AIC(PH2.10) #2 knots one in 33% one in 67%
+
+BIC(PH0.10) 
+BIC(PH1.10) #1 knots in median
+BIC(PH2.10) #2 knots one in 33% one in 67%
+
+#same the final is PO1
+```
+
+
+```{r censor for 10 years}
+
+imp3.temp10<-survSplit(Surv(year, cens) ~ ., data = imp3.new10, cut = 10,
+                  episode="timegroup")
+imp3.10y<-subset(imp3.temp10, timegroup == 1) #only the first 10 year
+```
+
+```{r Harrell Uno 10 years}
+
+#---leave CamPalGN out----
+
+data10y.1<-imp3.10y%>%
+  filter(clus!="CamPalGN")
+
+data10y.1v<-imp3.10y%>%
+  filter(clus=="CamPalGN")
+
+#Boundary knots location
+data10y.1%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))  
+
+
+#refit model
+model1.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.1,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+
+#linear predictor
+
+h0.1.10<-predict(model1.10,newdata = data10y.1v,type="hazard",times=10)  #H0(t=10)
+h.1.10<-predict(model1.10,newdata = data10y.1v,type="cumhaz",times=10)   #H(t=10)
+
+lp.1.10<-log((exp(h.1.10[[2]])-1)/(exp(h0.1.10[[2]])-1))
+
+
+#add linear predictor in validation datasets
+
+
+data10y.1v$lp.1.10<-lp.1.10 #It is the same as lp!!!
+
+# Harrell's C
+harrell_C_1v.10 <- concordance(Surv(year,cens) ~ lp.1.10, 
+                              data10y.1v, 
+                               reverse = TRUE)
+# Uno's C
+Uno_C_1v.10<- concordance(Surv(year,cens) ~ lp.1.10, 
+                           data10y.1v, 
+                           reverse = TRUE,
+                           timewt = "n/G2")
+
+#---leave NYPUM out----
+
+data10y.3<-imp3.10y%>%
+  filter(clus!="NYPUM")
+
+data10y.3v<-imp3.10y%>%
+  filter(clus=="NYPUM")
+
+#Boundary knots location
+data10y.3%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))  
+
+#refit model
+model3.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.3,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+
+#linear predictor
+
+h0.3.10<-predict(model3.10,newdata = data10y.3v,type="hazard",times=10)  #H0(t=10)
+h.3.10<-predict(model3.10,newdata = data10y.3v,type="cumhaz",times=10)   #H(t=10)
+
+lp.3.10<-log((exp(h.3.10[[2]])-1)/(exp(h0.3.10[[2]])-1))
+
+
+#add linear predictor in validation datasets
+
+data10y.3v$lp.3.10<-lp.3.10 
+
+
+# Harrell's C
+harrell_C_3v.10 <- concordance(Surv(year,cens) ~ lp.3.10, 
+                              data10y.3v, 
+                               reverse = TRUE)
+# Uno's C
+Uno_C_3v.10<- concordance(Surv(year,cens) ~ lp.3.10, 
+                           data10y.3v, 
+                           reverse = TRUE,
+                           timewt = "n/G2")
+
+
+#---leave ParkWest out----
+
+data10y.4<-imp3.10y%>%
+  filter(clus!="ParkWest")
+
+data10y.4v<-imp3.10y%>%
+  filter(clus=="ParkWest")
+
+#Boundary knots location
+data10y.4%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))  
+
+#refit model
+model4.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.4,k=1,bknots = c(log(0.1067762),log(9.943874	)),scale = "odds")
+
+h0.4.10<-predict(model4.10,newdata = data10y.4v,type="hazard",times=10)  #H0(t=10)
+h.4.10<-predict(model4.10,newdata = data10y.4v,type="cumhaz",times=10)   #H(t=10)
+
+lp.4.10<-log((exp(h.4.10[[2]])-1)/(exp(h0.4.10[[2]])-1))
+
+
+#add linear predictor in validation datasets
+
+data10y.4v$lp.4.10<-lp.4.10 
+
+# Harrell's C
+harrell_C_4v.10 <- concordance(Surv(year,cens) ~ lp.4.10, 
+                              data10y.4v, 
+                               reverse = TRUE)
+# Uno's C
+Uno_C_4v.10<- concordance(Surv(year,cens) ~ lp.4.10, 
+                           data10y.4v, 
+                           reverse = TRUE,
+                           timewt = "n/G2")
+
+
+#---leave PICNICS out----
+
+data10y.5<-imp3.10y%>%
+  filter(clus!="PICNICS")
+
+data10y.5v<-imp3.10y%>%
+  filter(clus=="PICNICS")
+
+#Boundary knots location
+data10y.5%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))  
+
+#refit model
+model5.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.5,k=1,bknots = c(log(0.5557837),log(9.596167)),scale = "odds")
+
+h0.5.10<-predict(model5.10,newdata = data10y.5v,type="hazard",times=10)  #H0(t=10)
+h.5.10<-predict(model5.10,newdata = data10y.5v,type="cumhaz",times=10)   #H(t=10)
+
+lp.5.10<-log((exp(h.5.10[[2]])-1)/(exp(h0.5.10[[2]])-1))
+
+
+#add linear predictor in validation datasets
+
+data10y.5v$lp.5.10<-lp.5.10 
+
+# Harrell's C
+harrell_C_5v.10 <- concordance(Surv(year,cens) ~ lp.5.10, 
+                              data10y.5v, 
+                               reverse = TRUE)
+# Uno's C
+Uno_C_5v.10<- concordance(Surv(year,cens) ~ lp.5.10, 
+                           data10y.5v, 
+                           reverse = TRUE,
+                           timewt = "n/G2")
+
+#---leave PINE out----
+
+data10y.6<-imp3.10y%>%
+  filter(clus!="PINE")
+
+data10y.6v<-imp3.10y%>%
+  filter(clus=="PINE")
+
+#Boundary knots location
+data10y.6%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))  
+
+#refit model
+model6.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.6,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+
+h0.6.10<-predict(model6.10,newdata = data10y.6v,type="hazard",times=10)  #H0(t=10)
+h.6.10<-predict(model6.10,newdata = data10y.6v,type="cumhaz",times=10)   #H(t=10)
+
+lp.6.10<-log((exp(h.6.10[[2]])-1)/(exp(h0.6.10[[2]])-1))
+
+
+#add linear predictor in validation datasets
+
+data10y.6v$lp.6.10<-lp.6.10 
+
+# Harrell's C
+harrell_C_6v.10 <- concordance(Surv(year,cens) ~ lp.6.10, 
+                              data10y.6v, 
+                               reverse = TRUE)
+# Uno's C
+Uno_C_6v.10<- concordance(Surv(year,cens) ~ lp.6.10, 
+                           data10y.6v, 
+                           reverse = TRUE,
+                           timewt = "n/G2")
+```
+
+```{r Time-dependent AUC 10 years}
+
+#---leave CamPalGN out----
+
+Uno_1v.10 <-
+  timeROC::timeROC(
+    T = data10y.1v$year, 
+    delta = data10y.1v$cens,
+    marker = data10y.1v$lp.1.10,
+    cause = 1, 
+    weighting = "marginal", 
+    times = 9.99,
+    iid = TRUE
+  )
+
+#---leave NYPUM out----
+
+Uno_3v.10 <-
+  timeROC::timeROC(
+    T = data10y.3v$year, 
+    delta = data10y.3v$cens,
+    marker = data10y.3v$lp.3.10,
+    cause = 1, 
+    weighting = "marginal", 
+    times = 9.99,
+    iid = TRUE
+  )
+
+
+#---leave ParkWest out----
+
+Uno_4v.10 <-
+  timeROC::timeROC(
+    T = data10y.4v$year, 
+    delta = data10y.4v$cens,
+    marker = data10y.4v$lp.4.10,
+    cause = 1, 
+    weighting = "marginal", 
+    times = 9,
+    iid = TRUE
+  )
+
+
+
+
+#---leave PICNICS out----
+
+Uno_5v <-
+  timeROC::timeROC(
+    T = data5y.5v$year, 
+    delta = data5y.5v$cens,
+    marker = data5y.5v$lp.5,
+    cause = 1, 
+    weighting = "marginal", 
+    times = 4.99,
+    iid = TRUE
+  )
+
+#---leave PINE out----
+
+Uno_6v <-
+  timeROC::timeROC(
+    T = data5y.6v$year, 
+    delta = data5y.6v$cens,
+    marker = data5y.6v$lp.6,
+    cause = 1, 
+    weighting = "marginal", 
+    times = 4.99,
+    iid = TRUE
+  )
+
+```

@@ -497,7 +497,7 @@ PO2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus
 ```
 
 ```{r PH model}
-PH0<-flexsurvreg(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,dist = "weibull")
+PH0<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,k=0,scale="hazard")
 
 PH1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "hazard")
 
