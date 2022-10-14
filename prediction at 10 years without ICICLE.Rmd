@@ -305,6 +305,29 @@ Uno_6v.10 <-
 ```
 
 
+```{r Discrimination 7 year}
+
+harrell_C_1v.10 
+harrell_C_3v.10 
+harrell_C_4v.10 
+harrell_C_5v.10
+harrell_C_6v.10 
+
+
+Uno_C_1v.10
+Uno_C_3v.10
+Uno_C_4v.10
+Uno_C_5v.10
+Uno_C_6v.10
+
+
+Uno_1v.10
+Uno_3v.10
+Uno_4v.10
+Uno_5v.10
+Uno_6v.10
+```
+
 ```{r Mean calibration 7 years}
 
 # Observed / Expected ratio
@@ -979,4 +1002,21 @@ calslope_summary.6.10 <- c(
   "97.5 %" = val.6.10$coefficients[2] + 1.96 * 0.004428
 )
 calslope_summary.6.10
+```
+
+```{r mean and weak calibration 7 year}
+
+OE_summary.1.10
+OE_summary.3.10
+OE_summary.4.10
+OE_summary.5.10
+OE_summary.6.10  
+
+
+calslope_summary.1.10
+calslope_summary.3.10
+calslope_summary.4.10
+calslope_summary.5.10
+calslope_summary.6.10
+
 ```

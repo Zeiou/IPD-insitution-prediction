@@ -776,6 +776,7 @@ Uno_C_6v<- concordance(Surv(year,cens) ~ lp.6,
                            timewt = "n/G2")
 ```
 
+
 ```{r Time-dependent AUC}
 
 #---leave CamPalGN out----
@@ -864,6 +865,32 @@ Uno_6v <-
 
 ```
 
+
+```{r Discrimination 4 year}
+
+harrell_C_1v 
+harrell_C_2v 
+harrell_C_3v 
+harrell_C_4v 
+harrell_C_5v
+harrell_C_6v 
+
+
+Uno_C_1v
+Uno_C_2v
+Uno_C_3v
+Uno_C_4v
+Uno_C_5v
+Uno_C_6v
+
+
+Uno_1v
+Uno_2v
+Uno_3v
+Uno_4v
+Uno_5v
+Uno_6v
+```
 
 ```{r Mean calibration}
 
@@ -1046,6 +1073,7 @@ OE_summary.6 <- c(
 OE_summary.6
 
 ```
+
 
 ```{r  Moderate calibration}
 
@@ -1702,6 +1730,26 @@ calslope_summary.6 <- c(
 
 calslope_summary.6
 
+
+```
+
+
+```{r mean and weak calibration 4 year}
+
+OE_summary.1
+OE_summary.2
+OE_summary.3
+OE_summary.4
+OE_summary.5
+OE_summary.6  
+
+
+calslope_summary.1
+calslope_summary.2
+calslope_summary.3
+calslope_summary.4
+calslope_summary.5
+calslope_summary.6
 
 ```
 
