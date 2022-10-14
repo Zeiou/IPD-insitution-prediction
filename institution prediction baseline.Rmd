@@ -1054,7 +1054,7 @@ OE_summary.6
 
 #---leave CamPalGN out----
 
-#data5y.1v$pred<-predict(model1,newdata = data5y.1v,type = "survival",times = 5) #survival probabilities
+#data5y.1v$pred<-predict(model1,newdata = data5y.1v,type = "survival",times = 4) #survival probabilities
 
 # predicted risk
 data5y.1v$risk <-(1-data5y.1v$pred) #predicted risk, as 1 - S(t|X),the probabilities of events
@@ -1591,6 +1591,7 @@ numsum_cph.6.RP
 
 #---leave CamPalGN out----
 
+#Because if I use data5y.1v$pred<-predict(model1,newdata = data5y.1v,type = "survival",times = 4) #survival probabilities, the slope will be 1, which means it should get the actual not the predict one.
 
 data5y.1v$pred.act<-predict(vcal.1.RP,type = "survival",times = 4,newdata = data5y.1v)[[2]] #actual survival 
 
@@ -1598,7 +1599,7 @@ data5y.1v$g_st<-log((1/data5y.1v$pred.act)-1)
 
 val.1<-lm(g_st~lp.1,data = data5y.1v)
 
-#summary(val.1)
+summary(val.1)
 
 calslope_summary.1 <- c(
   "calibration slope" = val.1$coefficients[2],

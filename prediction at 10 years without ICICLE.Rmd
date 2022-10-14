@@ -4,7 +4,7 @@ output: html_document
 date: '2022-10-13'
 ---
 
-```{r 10 years model}
+```{r 7 years model}
 
 imp3.new10<-imp3.new%>%
   filter(clus!="ICICLE")
@@ -27,7 +27,7 @@ PH2.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+c
 ```
 
 
-```{r POPH compare 10 years}
+```{r POPH compare 7 years}
 
 AIC(PO0.10) 
 AIC(PO1.10) #1 knots in median
@@ -50,14 +50,14 @@ BIC(PH2.10) #2 knots one in 33% one in 67%
 ```
 
 
-```{r censor for 10 years}
+```{r censor for 7 years}
 
-imp3.temp10<-survSplit(Surv(year, cens) ~ ., data = imp3.new10, cut = 10,
+imp3.temp10<-survSplit(Surv(year, cens) ~ ., data = imp3.new10, cut = 7,
                   episode="timegroup")
-imp3.10y<-subset(imp3.temp10, timegroup == 1) #only the first 10 year
+imp3.10y<-subset(imp3.temp10, timegroup == 1) #only the first 7 year
 ```
 
-```{r Harrell Uno 10 years}
+```{r Harrell Uno 7 years}
 
 #---leave CamPalGN out----
 
@@ -74,20 +74,16 @@ data10y.1%>%
 
 
 #refit model
-model1.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.1,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
-
-#linear predictor
-
-h0.1.10<-predict(model1.10,newdata = data10y.1v,type="hazard",times=10)  #H0(t=10)
-h.1.10<-predict(model1.10,newdata = data10y.1v,type="cumhaz",times=10)   #H(t=10)
-
-lp.1.10<-log((exp(h.1.10[[2]])-1)/(exp(h0.1.10[[2]])-1))
+model1.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.1,k=1,bknots = c(log(0.1067762),log(6.976044)),scale = "odds")
 
 
-#add linear predictor in validation datasets
+#linear predictor method 1
+# Design matrix of predictors
+des_matr1.10<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+hybl,data=data10y.1v))
+des_matr1.10$`(Intercept)` <- NULL
+coef1.10<-c(model1.10$coefficients[4],model1.10$coefficients[5],model1.10$coefficients[6],model1.10$coefficients[7])
+data10y.1v$lp.1.10 <- as.vector(as.matrix(des_matr1.10) %*% cbind(coef1.10))
 
-
-data10y.1v$lp.1.10<-lp.1.10 #It is the same as lp!!!
 
 # Harrell's C
 harrell_C_1v.10 <- concordance(Surv(year,cens) ~ lp.1.10, 
@@ -113,19 +109,14 @@ data10y.3%>%
   summarise(max(year),min(year))  
 
 #refit model
-model3.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.3,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+model3.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.3,k=1,bknots = c(log(0.1067762),log(6.976044)),scale = "odds")
 
-#linear predictor
-
-h0.3.10<-predict(model3.10,newdata = data10y.3v,type="hazard",times=10)  #H0(t=10)
-h.3.10<-predict(model3.10,newdata = data10y.3v,type="cumhaz",times=10)   #H(t=10)
-
-lp.3.10<-log((exp(h.3.10[[2]])-1)/(exp(h0.3.10[[2]])-1))
-
-
-#add linear predictor in validation datasets
-
-data10y.3v$lp.3.10<-lp.3.10 
+#linear predictor 
+# Design matrix of predictors
+des_matr3.10<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+hybl,data=data10y.3v))
+des_matr3.10$`(Intercept)` <- NULL
+coef3.10<-c(model3.10$coefficients[4],model3.10$coefficients[5],model3.10$coefficients[6],model3.10$coefficients[7])
+data10y.3v$lp.3.10 <- as.vector(as.matrix(des_matr3.10) %*% cbind(coef3.10))
 
 
 # Harrell's C
@@ -153,17 +144,14 @@ data10y.4%>%
   summarise(max(year),min(year))  
 
 #refit model
-model4.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.4,k=1,bknots = c(log(0.1067762),log(9.943874	)),scale = "odds")
+model4.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.4,k=1,bknots = c(log(0.1067762),log(6.976044)),scale = "odds")
 
-h0.4.10<-predict(model4.10,newdata = data10y.4v,type="hazard",times=10)  #H0(t=10)
-h.4.10<-predict(model4.10,newdata = data10y.4v,type="cumhaz",times=10)   #H(t=10)
-
-lp.4.10<-log((exp(h.4.10[[2]])-1)/(exp(h0.4.10[[2]])-1))
-
-
-#add linear predictor in validation datasets
-
-data10y.4v$lp.4.10<-lp.4.10 
+#linear predictor 
+# Design matrix of predictors
+des_matr4.10<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+hybl,data=data10y.4v))
+des_matr4.10$`(Intercept)` <- NULL
+coef4.10<-c(model4.10$coefficients[4],model4.10$coefficients[5],model4.10$coefficients[6],model4.10$coefficients[7])
+data10y.4v$lp.4.10 <- as.vector(as.matrix(des_matr4.10) %*% cbind(coef4.10))
 
 # Harrell's C
 harrell_C_4v.10 <- concordance(Surv(year,cens) ~ lp.4.10, 
@@ -190,17 +178,15 @@ data10y.5%>%
   summarise(max(year),min(year))  
 
 #refit model
-model5.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.5,k=1,bknots = c(log(0.5557837),log(9.596167)),scale = "odds")
+model5.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.5,k=1,bknots = c(log(0.5557837),log(6.976044)),scale = "odds")
 
-h0.5.10<-predict(model5.10,newdata = data10y.5v,type="hazard",times=10)  #H0(t=10)
-h.5.10<-predict(model5.10,newdata = data10y.5v,type="cumhaz",times=10)   #H(t=10)
+#linear predictor 
+# Design matrix of predictors
+des_matr5.10<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+hybl,data=data10y.5v))
+des_matr5.10$`(Intercept)` <- NULL
+coef5.10<-c(model5.10$coefficients[4],model5.10$coefficients[5],model5.10$coefficients[6],model5.10$coefficients[7])
+data10y.5v$lp.5.10 <- as.vector(as.matrix(des_matr5.10) %*% cbind(coef5.10))
 
-lp.5.10<-log((exp(h.5.10[[2]])-1)/(exp(h0.5.10[[2]])-1))
-
-
-#add linear predictor in validation datasets
-
-data10y.5v$lp.5.10<-lp.5.10 
 
 # Harrell's C
 harrell_C_5v.10 <- concordance(Surv(year,cens) ~ lp.5.10, 
@@ -226,17 +212,14 @@ data10y.6%>%
   summarise(max(year),min(year))  
 
 #refit model
-model6.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.6,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+model6.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.6,k=1,bknots = c(log(0.1067762),log(6.872005)),scale = "odds")
 
-h0.6.10<-predict(model6.10,newdata = data10y.6v,type="hazard",times=10)  #H0(t=10)
-h.6.10<-predict(model6.10,newdata = data10y.6v,type="cumhaz",times=10)   #H(t=10)
-
-lp.6.10<-log((exp(h.6.10[[2]])-1)/(exp(h0.6.10[[2]])-1))
-
-
-#add linear predictor in validation datasets
-
-data10y.6v$lp.6.10<-lp.6.10 
+#linear predictor 
+# Design matrix of predictors
+des_matr6.10<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+hybl,data=data10y.6v))
+des_matr6.10$`(Intercept)` <- NULL
+coef6.10<-c(model6.10$coefficients[4],model6.10$coefficients[5],model6.10$coefficients[6],model6.10$coefficients[7])
+data10y.6v$lp.6.10 <- as.vector(as.matrix(des_matr6.10) %*% cbind(coef6.10))
 
 # Harrell's C
 harrell_C_6v.10 <- concordance(Surv(year,cens) ~ lp.6.10, 
@@ -249,7 +232,7 @@ Uno_C_6v.10<- concordance(Surv(year,cens) ~ lp.6.10,
                            timewt = "n/G2")
 ```
 
-```{r Time-dependent AUC 10 years}
+```{r Time-dependent AUC 7 years}
 
 #---leave CamPalGN out----
 
@@ -260,7 +243,7 @@ Uno_1v.10 <-
     marker = data10y.1v$lp.1.10,
     cause = 1, 
     weighting = "marginal", 
-    times = 9.99,
+    times = 6.99,
     iid = TRUE
   )
 
@@ -273,7 +256,7 @@ Uno_3v.10 <-
     marker = data10y.3v$lp.3.10,
     cause = 1, 
     weighting = "marginal", 
-    times = 9.99,
+    times = 6.99,
     iid = TRUE
   )
 
@@ -292,7 +275,6 @@ Uno_4v.10 <-
   )
 
 
-#ParkWest has less than 10 years
 
 #---leave PICNICS out----
 
@@ -303,7 +285,7 @@ Uno_5v.10 <-
     marker = data10y.5v$lp.5.10,
     cause = 1, 
     weighting = "marginal", 
-    times = 9.99,
+    times = 6.99,
     iid = TRUE
   )
 
@@ -316,14 +298,14 @@ Uno_6v.10 <-
     marker = data10y.6v$lp.6.10,
     cause = 1, 
     weighting = "marginal", 
-    times = 9.99,
+    times = 6.99,
     iid = TRUE
   )
 
 ```
 
 
-```{r Mean calibration 10 years}
+```{r Mean calibration 7 years}
 
 # Observed / Expected ratio
 alpha <- .05
@@ -334,11 +316,11 @@ alpha <- .05
 obj.1.10 <- summary(survfit(
   Surv(year, cens) ~ 1, 
   data = data10y.1v),
-  times = 10)
+  times = 7)
 
 obs_t.1.10 <- 1 - obj.1.10$surv
 
-data10y.1v$pred<-predict(model1.10,newdata = data10y.1v,type = "survival",times = 10)[[2]]  #survival probabilities
+data10y.1v$pred<-predict(model1.10,newdata = data10y.1v,type = "survival",times = 7)[[2]]  #survival probabilities
 
 # Expected
 exp_t.1.10 <-mean(1-data10y.1v$pred) #predicts risk, as 1 - S(t|X)
@@ -361,11 +343,11 @@ OE_summary.1.10
 obj.3.10 <- summary(survfit(
   Surv(year, cens) ~ 1, 
   data = data10y.3v),
-  times = 10)
+  times = 7)
 
 obs_t.3.10 <- 1 - obj.3.10$surv
 
-data10y.3v$pred<-predict(model3.10,newdata = data10y.3v,type = "survival",times = 10)[[2]]  #survival probabilities
+data10y.3v$pred<-predict(model3.10,newdata = data10y.3v,type = "survival",times = 7)[[2]]  #survival probabilities
 
 # Expected
 exp_t.3.10 <-mean(1-data10y.3v$pred) #predicts risk, as 1 - S(t|X)
@@ -393,7 +375,7 @@ obj.4.10 <- summary(survfit(
 
 obs_t.4.10 <- 1 - obj.4.10$surv
 
-data10y.4v$pred<-predict(model4.10,newdata = data10y.4v,type = "survival",times = 10)[[2]]  #survival probabilities
+data10y.4v$pred<-predict(model4.10,newdata = data10y.4v,type = "survival",times = 7)[[2]]  #survival probabilities
 
 # Expected
 exp_t.4.10 <-mean(1-data10y.4v$pred) #predicts risk, as 1 - S(t|X)
@@ -416,11 +398,11 @@ OE_summary.4.10
 obj.5.10 <- summary(survfit(
   Surv(year, cens) ~ 1, 
   data = data10y.5v),
-  times = 10)
+  times = 7)
 
 obs_t.5.10 <- 1 - obj.5.10$surv
 
-data10y.5v$pred<-predict(model5.10,newdata = data10y.5v,type = "survival",times = 10)[[2]]  #survival probabilities
+data10y.5v$pred<-predict(model5.10,newdata = data10y.5v,type = "survival",times = 7)[[2]]  #survival probabilities
 
 # Expected
 exp_t.5.10 <-mean(1-data10y.5v$pred) #predicts risk, as 1 - S(t|X)
@@ -442,11 +424,11 @@ OE_summary.5.10
 obj.6.10 <- summary(survfit(
   Surv(year, cens) ~ 1, 
   data = data10y.6v),
-  times = 10)
+  times = 7)
 
 obs_t.6.10 <- 1 - obj.6.10$surv
 
-data10y.6v$pred<-predict(model6.10,newdata = data10y.6v,type = "survival",times = 10)[[2]]  #survival probabilities
+data10y.6v$pred<-predict(model6.10,newdata = data10y.6v,type = "survival",times = 7)[[2]]  #survival probabilities
 
 # Expected
 exp_t.6.10 <-mean(1-data10y.6v$pred) #predicts risk, as 1 - S(t|X)
@@ -464,115 +446,53 @@ OE_summary.6.10 <- c(
 OE_summary.6.10
 ```
 
-```{r Weak calibration 10 years}
 
-#Include linear predictor in validation datasets as a predictor
-
-alpha<-0.05
-
-#---leave CamPalGN out----
-
-val.1.10 <- coxph(Surv(year, cens) ~ lp.1.10, data = data10y.1v)
-
-
-  calslope_summary.1.10 <- c(
-  "calibration slope" = val.1.10$coef,
-  "2.5 %"  = val.1.10$coef - qnorm(1 - alpha / 2) * sqrt(val.1.10$var),
-  "97.5 %" = val.1.10$coef + qnorm(1 - alpha / 2) * sqrt(val.1.10$var)
-)
-
-calslope_summary.1.10
-
-#---leave NYPUM out----
-
-val.3.10 <- coxph(Surv(year, cens) ~ lp.3.10, data = data10y.3v)
-
-calslope_summary.3.10 <- c(
-  "calibration slope" = val.3.10$coef,
-  "2.5 %"  = val.3.10$coef - qnorm(1 - alpha / 2) * sqrt(val.3.10$var),
-  "97.5 %" = val.3.10$coef + qnorm(1 - alpha / 2) * sqrt(val.3.10$var)
-)
-
-calslope_summary.3.10
-
-
-#---leave ParkWest out----
-
-val.4.10 <- coxph(Surv(year, cens) ~ lp.4.10, data = data10y.4v)
-
-calslope_summary.4.10 <- c(
-  "calibration slope" = val.4.10$coef,
-  "2.5 %"  = val.4.10$coef - qnorm(1 - alpha / 2) * sqrt(val.4.10$var),
-  "97.5 %" = val.4.10$coef + qnorm(1 - alpha / 2) * sqrt(val.4.10$var)
-)
-
-calslope_summary.4.10
-
-
-#---leave PICNICS out----
-
-val.5.10 <- coxph(Surv(year, cens) ~ lp.5.10, data = data10y.5v)
-
-calslope_summary.5.10 <- c(
-  "calibration slope" = val.5.10$coef,
-  "2.5 %"  = val.5.10$coef - qnorm(1 - alpha / 2) * sqrt(val.5.10$var),
-  "97.5 %" = val.5.10$coef + qnorm(1 - alpha / 2) * sqrt(val.5.10$var)
-)
-
-calslope_summary.5.10
-
-
-#---leave PINE out----
-
-val.6.10 <- coxph(Surv(year, cens) ~ lp.6.10, data = data10y.6v)
-
-calslope_summary.6.10 <- c(
-  "calibration slope" = val.6.10$coef,
-  "2.5 %"  = val.6.10$coef - qnorm(1 - alpha / 2) * sqrt(val.6.10$var),
-  "97.5 %" = val.6.10$coef + qnorm(1 - alpha / 2) * sqrt(val.6.10$var)
-)
-
-calslope_summary.6.10
-```
-
-```{r  Moderate calibration 10 years}
+```{r  Moderate calibration 7 years}
 
 #moderate calibration uses smooth curves of predicted risk from a more complex ‘secondary’ Cox model against the predicted risk from the development model 
 
 
 #---leave CamPalGN out----
 
+#data10y.1v$pred<-predict(model1.10,newdata = data10y.1v,type = "survival",times = 7)[[2]]  #survival probabilities
+
 # predicted risk
 
-data10y.1v$pred<-predict(model1.10,newdata = data10y.1v,type = "survival",times = 10) #survival probabilities
-
-data10y.1v$risk <-(1-data10y.1v$pred[[2]]) #predicted risk, as 1 - S(t|X),the probabilities of events
+data10y.1v$risk <-(1-data10y.1v$pred) #predicted risk, as 1 - S(t|X),the probabilities of events
 
 data10y.1v$risk.cll <- log(-log(1-data10y.1v$risk)) #complementary log-log link
 
+#Check location of knots again
+
+data10y.1v%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))  
+
+
 # Estimate actual risk
 
-vcal.1.10 <- cph(Surv(year, cens) ~ rcs(risk.cll, 3),
-                 x = T,
-                 y = T,
-                 surv = T,
-                 data = data10y.1v
-) 
+vcal.1.10.RP <- flexsurvspline(Surv(year, cens) ~ risk.cll, data = data10y.1v, k=1,bknots = c(log(1.147159),log(6.773443)),scale = "odds")
+
 
 #survest function is to estimate survival probabilities
 
 dat_cal.1.10 <- cbind.data.frame(
-  "obs" = 1 - rms::survest(vcal.1.10,
-                           times = 10,
-                           newdata = data10y.1v)$surv, #1-s(t=5) to get the refitted model predicted risk
+  "obs" = 1 - predict(vcal.1.10.RP,
+                      type = "survival",
+                      times = 7,
+                      newdata = data10y.1v)[[2]], #1-s(t=4) to get the refitted model predicted risk
   
-  "lower" = 1 - rms::survest(vcal.1.10,
-                             times = 10,
-                             newdata = data10y.1v)$upper,
+  "lower" = 1 - predict(vcal.1.10.RP,
+                      type = "survival",
+                      conf.int = T,
+                      times = 7,
+                      newdata = data10y.1v)[[4]],
   
-  "upper" = 1 - rms::survest(vcal.1.10,
-                             times = 10,
-                             newdata = data10y.1v)$lower,
+  "upper" = 1 - predict(vcal.1.10.RP,
+                      type = "survival",
+                      conf.int = T,
+                      times = 7,
+                      newdata = data10y.1v)[[3]],
   "pred" = data10y.1v$risk
 )
 
@@ -606,7 +526,7 @@ lines(dat_cal.1.10$pred,
 abline(0, 1, lwd = 2, lty = 2, col = 2)
 legend("bottomright",
         c("Ideal calibration",
-          "Calibration curve based on secondary Cox model",
+          "Calibration curve based on secondary Royston-Parmar model",
           "95% confidence interval"),
         col = c(2, 1, 1),
         lty = c(2, 1, 2),
@@ -630,35 +550,39 @@ numsum_cph.1.10
 
 # predicted risk
 
-data10y.3v$pred<-predict(model3.10,newdata = data10y.3v,type = "survival",times = 10) #survival probabilities
-
-data10y.3v$risk <-(1-data10y.3v$pred[[2]]) #predicted risk, as 1 - S(t|X),the probabilities of events
+data10y.3v$risk <-(1-data10y.3v$pred) #predicted risk, as 1 - S(t|X),the probabilities of events
 
 data10y.3v$risk.cll <- log(-log(1-data10y.3v$risk)) #complementary log-log link
 
+#Check location of knots again
+
+data10y.3v%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))  
+
+
 # Estimate actual risk
 
-vcal.3.10 <- cph(Surv(year, cens) ~ rcs(risk.cll, 3),
-                 x = T,
-                 y = T,
-                 surv = T,
-                 data = data10y.3v
-) 
+vcal.3.10.RP <- flexsurvspline(Surv(year, cens) ~ risk.cll, data = data10y.3v, k=1,bknots = c(log(0.8925394),log(6.735113)),scale = "odds")
 
-#survest function is to estimate survival probabilities
 
 dat_cal.3.10 <- cbind.data.frame(
-  "obs" = 1 - rms::survest(vcal.3.10,
-                           times = 10,
-                           newdata = data10y.3v)$surv, #1-s(t=5) to get the refitted model predicted risk
+  "obs" = 1 - predict(vcal.3.10.RP,
+                      type = "survival",
+                      times = 7,
+                      newdata = data10y.3v)[[2]], #1-s(t=4) to get the refitted model predicted risk
   
-  "lower" = 1 - rms::survest(vcal.3.10,
-                             times = 10,
-                             newdata = data10y.3v)$upper,
+  "lower" = 1 - predict(vcal.3.10.RP,
+                      type = "survival",
+                      conf.int = T,
+                      times = 7,
+                      newdata = data10y.3v)[[4]],
   
-  "upper" = 1 - rms::survest(vcal.3.10,
-                             times = 10,
-                             newdata = data10y.3v)$lower,
+  "upper" = 1 - predict(vcal.3.10.RP,
+                      type = "survival",
+                      conf.int = T,
+                      times = 7,
+                      newdata = data10y.3v)[[3]],
   "pred" = data10y.3v$risk
 )
 
@@ -692,7 +616,7 @@ lines(dat_cal.3.10$pred,
 abline(0, 1, lwd = 2, lty = 2, col = 2)
 legend("bottomright",
         c("Ideal calibration",
-          "Calibration curve based on secondary Cox model",
+          "Calibration curve based on secondary Royston-Parmar model",
           "95% confidence interval"),
         col = c(2, 1, 1),
         lty = c(2, 1, 2),
@@ -715,36 +639,39 @@ numsum_cph.3.10
 
 # predicted risk
 
-
-data10y.4v$pred<-predict(model4.10,newdata = data10y.4v,type = "survival",times = 10) #survival probabilities
-
-data10y.4v$risk <-(1-data10y.4v$pred[[2]]) #predicted risk, as 1 - S(t|X),the probabilities of events
+data10y.4v$risk <-(1-data10y.4v$pred) #predicted risk, as 1 - S(t|X),the probabilities of events
 
 data10y.4v$risk.cll <- log(-log(1-data10y.4v$risk)) #complementary log-log link
 
+#Check location of knots again
+
+data10y.4v%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))  
+
+
 # Estimate actual risk
 
-vcal.4.10 <- cph(Surv(year, cens) ~ rcs(risk.cll, 3),
-                 x = T,
-                 y = T,
-                 surv = T,
-                 data = data10y.4v
-) 
+vcal.4.10.RP <- flexsurvspline(Surv(year, cens) ~ risk.cll, data = data10y.4v, k=1,bknots = c(log(1.990418),log(6.729637)),scale = "odds")
 
-#survest function is to estimate survival probabilities
 
 dat_cal.4.10 <- cbind.data.frame(
-  "obs" = 1 - rms::survest(vcal.4.10,
-                           times = 10,
-                           newdata = data10y.4v)$surv, #1-s(t=5) to get the refitted model predicted risk
+  "obs" = 1 - predict(vcal.4.10.RP,
+                      type = "survival",
+                      times = 7,
+                      newdata = data10y.4v)[[2]], #1-s(t=4) to get the refitted model predicted risk
   
-  "lower" = 1 - rms::survest(vcal.4.10,
-                             times = 10,
-                             newdata = data10y.4v)$upper,
+  "lower" = 1 - predict(vcal.4.10.RP,
+                      type = "survival",
+                      conf.int = T,
+                      times = 7,
+                      newdata = data10y.4v)[[4]],
   
-  "upper" = 1 - rms::survest(vcal.4.10,
-                             times = 10,
-                             newdata = data10y.4v)$lower,
+  "upper" = 1 - predict(vcal.4.10.RP,
+                      type = "survival",
+                      conf.int = T,
+                      times = 7,
+                      newdata = data10y.4v)[[3]],
   "pred" = data10y.4v$risk
 )
 
@@ -778,7 +705,7 @@ lines(dat_cal.4.10$pred,
 abline(0, 1, lwd = 2, lty = 2, col = 2)
 legend("bottomright",
         c("Ideal calibration",
-          "Calibration curve based on secondary Cox model",
+          "Calibration curve based on secondary Royston-Parmar model",
           "95% confidence interval"),
         col = c(2, 1, 1),
         lty = c(2, 1, 2),
@@ -799,35 +726,39 @@ numsum_cph.4.10
 
 #---leave PICNICS out----
 
-data10y.5v$pred<-predict(model5.10,newdata = data10y.5v,type = "survival",times = 10) #survival probabilities
-
-data10y.5v$risk <-(1-data10y.5v$pred[[2]]) #predicted risk, as 1 - S(t|X),the probabilities of events
+data10y.5v$risk <-(1-data10y.5v$pred) #predicted risk, as 1 - S(t|X),the probabilities of events
 
 data10y.5v$risk.cll <- log(-log(1-data10y.5v$risk)) #complementary log-log link
 
+#Check location of knots again
+
+data10y.5v%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))  
+
+
 # Estimate actual risk
 
-vcal.5.10 <- cph(Surv(year, cens) ~ rcs(risk.cll, 3),
-                 x = T,
-                 y = T,
-                 surv = T,
-                 data = data10y.5v
-) 
+vcal.5.10.RP <- flexsurvspline(Surv(year, cens) ~ risk.cll, data = data10y.5v, k=1,bknots = c(log(0.1067762),log(6.872005)),scale = "odds")
 
-#survest function is to estimate survival probabilities
 
 dat_cal.5.10 <- cbind.data.frame(
-  "obs" = 1 - rms::survest(vcal.5.10,
-                           times = 10,
-                           newdata = data10y.5v)$surv, #1-s(t=5) to get the refitted model predicted risk
+  "obs" = 1 - predict(vcal.5.10.RP,
+                      type = "survival",
+                      times = 7,
+                      newdata = data10y.5v)[[2]], #1-s(t=4) to get the refitted model predicted risk
   
-  "lower" = 1 - rms::survest(vcal.5.10,
-                             times = 10,
-                             newdata = data10y.5v)$upper,
+  "lower" = 1 - predict(vcal.5.10.RP,
+                      type = "survival",
+                      conf.int = T,
+                      times = 7,
+                      newdata = data10y.5v)[[4]],
   
-  "upper" = 1 - rms::survest(vcal.5.10,
-                             times = 10,
-                             newdata = data10y.5v)$lower,
+  "upper" = 1 - predict(vcal.5.10.RP,
+                      type = "survival",
+                      conf.int = T,
+                      times = 7,
+                      newdata = data10y.5v)[[3]],
   "pred" = data10y.5v$risk
 )
 
@@ -861,7 +792,7 @@ lines(dat_cal.5.10$pred,
 abline(0, 1, lwd = 2, lty = 2, col = 2)
 legend("bottomright",
         c("Ideal calibration",
-          "Calibration curve based on secondary Cox model",
+          "Calibration curve based on secondary Royston-Parmar model",
           "95% confidence interval"),
         col = c(2, 1, 1),
         lty = c(2, 1, 2),
@@ -881,35 +812,39 @@ numsum_cph.5.10
 
 #---leave PINE out----
 
-data10y.6v$pred<-predict(model6.10,newdata = data10y.6v,type = "survival",times = 10) #survival probabilities
-
-data10y.6v$risk <-(1-data10y.6v$pred[[2]]) #predicted risk, as 1 - S(t|X),the probabilities of events
+data10y.6v$risk <-(1-data10y.6v$pred) #predicted risk, as 1 - S(t|X),the probabilities of events
 
 data10y.6v$risk.cll <- log(-log(1-data10y.6v$risk)) #complementary log-log link
 
+#Check location of knots again
+
+data10y.6v%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year))  
+
+
 # Estimate actual risk
 
-vcal.6.10 <- cph(Surv(year, cens) ~ rcs(risk.cll, 3),
-                 x = T,
-                 y = T,
-                 surv = T,
-                 data = data10y.6v
-) 
+vcal.6.10.RP <- flexsurvspline(Surv(year, cens) ~ risk.cll, data = data10y.6v, k=1,bknots = c(log(0.5557837),log(6.976044)),scale = "odds")
 
-#survest function is to estimate survival probabilities
 
 dat_cal.6.10 <- cbind.data.frame(
-  "obs" = 1 - rms::survest(vcal.6.10,
-                           times = 10,
-                           newdata = data10y.6v)$surv, #1-s(t=5) to get the refitted model predicted risk
+  "obs" = 1 - predict(vcal.6.10.RP,
+                      type = "survival",
+                      times = 7,
+                      newdata = data10y.6v)[[2]], #1-s(t=4) to get the refitted model predicted risk
   
-  "lower" = 1 - rms::survest(vcal.6.10,
-                             times = 10,
-                             newdata = data10y.6v)$upper,
+  "lower" = 1 - predict(vcal.6.10.RP,
+                      type = "survival",
+                      conf.int = T,
+                      times = 7,
+                      newdata = data10y.6v)[[4]],
   
-  "upper" = 1 - rms::survest(vcal.6.10,
-                             times = 10,
-                             newdata = data10y.6v)$lower,
+  "upper" = 1 - predict(vcal.6.10.RP,
+                      type = "survival",
+                      conf.int = T,
+                      times = 7,
+                      newdata = data10y.6v)[[3]],
   "pred" = data10y.6v$risk
 )
 
@@ -943,7 +878,7 @@ lines(dat_cal.6.10$pred,
 abline(0, 1, lwd = 2, lty = 2, col = 2)
 legend("bottomright",
         c("Ideal calibration",
-          "Calibration curve based on secondary Cox model",
+          "Calibration curve based on secondary Royston-Parmar model",
           "95% confidence interval"),
         col = c(2, 1, 1),
         lty = c(2, 1, 2),
@@ -961,6 +896,87 @@ numsum_cph.6.10 <- c(
 )
 numsum_cph.6.10
 
+```
 
 
+```{r Weak calibration 7 years}
+
+#Include linear predictor in validation datasets as a predictor
+
+#---leave CamPalGN out----
+
+data10y.1v$pred.act<-predict(vcal.1.10.RP,type = "survival",times = 7,newdata = data10y.1v)[[2]] #actual survival 
+data10y.1v$g_st<-log((1/data10y.1v$pred.act)-1)
+val.1.10<-lm(g_st~lp.1.10,data = data10y.1v)
+
+#summary(val.1.10)
+
+calslope_summary.1.10 <- c(
+  "calibration slope" = val.1.10$coefficients[2],
+  "2.5 %"  = val.1.10$coefficients[2] - 1.96 * 0.01046,
+  "97.5 %" = val.1.10$coefficients[2] + 1.96 * 0.01046
+)
+calslope_summary.1.10
+
+#---leave NYPUM out----
+
+data10y.3v$pred.act<-predict(vcal.3.10.RP,type = "survival",times = 7,newdata = data10y.3v)[[2]] #actual survival 
+data10y.3v$g_st<-log((1/data10y.3v$pred.act)-1)
+val.3.10<-lm(g_st~lp.3.10,data = data10y.3v)
+
+#summary(val.3.10)
+
+calslope_summary.3.10 <- c(
+  "calibration slope" = val.3.10$coefficients[2],
+  "2.5 %"  = val.3.10$coefficients[2] - 1.96 * 0.01399,
+  "97.5 %" = val.3.10$coefficients[2] + 1.96 * 0.01399
+)
+calslope_summary.3.10
+
+
+#---leave ParkWest out----
+
+data10y.4v$pred.act<-predict(vcal.4.10.RP,type = "survival",times = 7,newdata = data10y.4v)[[2]] #actual survival 
+data10y.4v$g_st<-log((1/data10y.4v$pred.act)-1)
+val.4.10<-lm(g_st~lp.4.10,data = data10y.4v)
+
+#summary(val.4.10)
+
+calslope_summary.4.10 <- c(
+  "calibration slope" = val.4.10$coefficients[2],
+  "2.5 %"  = val.4.10$coefficients[2] - 1.96 * 0.005266,
+  "97.5 %" = val.4.10$coefficients[2] + 1.96 * 0.005266
+)
+calslope_summary.4.10
+
+
+#---leave PICNICS out----
+
+data10y.5v$pred.act<-predict(vcal.5.10.RP,type = "survival",times = 7,newdata = data10y.5v)[[2]] #actual survival 
+data10y.5v$g_st<-log((1/data10y.5v$pred.act)-1)
+val.5.10<-lm(g_st~lp.5.10,data = data10y.5v)
+
+#summary(val.5.10)
+
+calslope_summary.5.10 <- c(
+  "calibration slope" = val.5.10$coefficients[2],
+  "2.5 %"  = val.5.10$coefficients[2] - 1.96 * 0.005661,
+  "97.5 %" = val.5.10$coefficients[2] + 1.96 * 0.005661
+)
+calslope_summary.5.10
+
+#---leave PINE out----
+
+data10y.6v$pred.act<-predict(vcal.6.10.RP,type = "survival",times = 7,newdata = data10y.6v)[[2]] #actual survival 
+data10y.6v$g_st<-log((1/data10y.6v$pred.act)-1)
+val.6.10<-lm(g_st~lp.6.10,data = data10y.6v)
+
+#summary(val.6.10)
+
+calslope_summary.6.10 <- c(
+  "calibration slope" = val.6.10$coefficients[2],
+  "2.5 %"  = val.6.10$coefficients[2] - 1.96 * 0.004428,
+  "97.5 %" = val.6.10$coefficients[2] + 1.96 * 0.004428
+)
+calslope_summary.6.10
 ```
