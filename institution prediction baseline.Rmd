@@ -1615,13 +1615,284 @@ numsum_cph.6.RP <- c(
 numsum_cph.6.RP
 ```
 
-```{r Weak calibration}
+
+```{r Check outlier in model}
+
+#From the calibration plot, we can see the heterogeneity between studies'
+#Check the population first, age group and the number event.
+#Divide by 3 group first
+
+
+summary(imp3.5y$age10) # Min 3.750, Max 9.649
+
+imp3.5y%>%
+  filter(cens==1)%>%
+  group_by(clus)%>%
+  summarise(min(age10),median(age10),max(age10)) #One patient in PINE has event 45.8 years old, maybe an outlier,
+                                                 # idpicc is 1305
+
+
+data5y.event<-imp3.5y%>%
+              filter(cens==1)
+
+ggplot(data5y.event, aes(x=clus, y=agebl, fill=clus)) + 
+    geom_boxplot()
+
+
+data5y.event%>%
+  group_by(clus)%>%
+  summarise(sum(cens))
+```
+
+```{r recalibration}
+#----CamPalGN----
+
+#Observed 
+#observed outcome frequency 
+
+obj.fre.1<-4/129
+
+#mean predicted risk 
+#exp_t.1 <-mean(1-data5y.1v$pred)
+
+cf1<-log(((obj.fre.1)/(1-obj.fre.1))/((exp_t.1)/(1-exp_t.1))) #correction factor  -1.07304
+
+
+data5y.1v$pred<-predict(model1,newdata = data5y.1v,type = "survival",times = 4)
+data5y.1v$g_st<-log((1/data5y.1v$pred)-1)
+val.1<-lm(g_st~lp.1,data = data5y.1v)
+summary(val.1) #But this is -14.14??
+
+model1
+
+gamma.m1 <- model1$res[c("gamma0", "gamma1", "gamma2"), "est"]
+
+rcs.mod1<-as.data.frame(basis(model1$knots,log(data5y.1v$year))) #basis spline
+
+data5y.1v$rcs1<-rcs.mod1[,2]
+   
+data5y.1v$rcs2<-rcs.mod1[,3]
+
+data5y.1v$pred.re<-1/(1+exp(-17.5665135+0.9822*log(data5y.1v$year)-0.4243082*data5y.1v$rcs2+data5y.1v$lp.1)) #survival probabilities
+
+data5y.1v$risk.re<-1-data5y.1v$pred.re
+
+model1.re<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.1,k=1,bknots = c(log(1.147159),log(3.761807)),scale = "odds")
+
+data5y.1v$pred.re<-predict(model1.re,newdata = data5y.1v,type = "survival",times = 4)[[2]]
+
+#Try t=4
+
+rcs.mod1<-as.data.frame(basis(model1$knots,log(4))) #basis spline
+data5y.1v$rcs1<-rcs.mod1[,2]
+data5y.1v$rcs2<-rcs.mod1[,3]
+data5y.1v$pred.re<-1/(1+exp(-17.5665135+0.9822*log(4)-0.4243082*data5y.1v$rcs2+data5y.1v$lp.1))
+data5y.1v$risk.re<-1-data5y.1v$pred.re
+
+#This is right!!!! Finally!!! t=4 is right
+
+coef1.re<-c(model1$coefficients[4],model1$coefficients[5],model1$coefficients[6],model1$coefficients[7])
+data5y.1v$lp.1.re <- as.vector(as.matrix(des_matr1) %*% cbind(coef1.re))
+
+rcs.mod1<-as.data.frame(basis(model1$knots,log(4))) #basis spline
+data5y.1v$rcs1<-rcs.mod1[,2]
+data5y.1v$rcs2<-rcs.mod1[,3]
+data5y.1v$pred.re<-1/(1+exp(-17.5665135-1.07304+0.9822*log(4)-0.4243082*data5y.1v$rcs2+data5y.1v$lp.1.re))
+data5y.1v$risk.re<-1-data5y.1v$pred.re
+
+
+dat_cal.1.RP.re <- cbind.data.frame(
+  "obs" = 1 - predict(vcal.1.RP,
+                      type = "survival",
+                      times = 4,
+                      newdata = data5y.1v)[[2]], #1-s(t=4) to get the refitted model predicted risk
+  
+  "lower" = 1 - predict(vcal.1.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 4,
+                        newdata = data5y.1v)[[4]],
+  
+  "upper" = 1 - predict(vcal.1.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 4,
+                        newdata = data5y.1v)[[3]],
+  "pred" = data5y.1v$risk.re
+)
+
+
+
+dat_cal.1.RP.re <- dat_cal.1.RP.re[order(dat_cal.1.RP.re$pred), ]
+
+par(xaxs = "i", yaxs = "i", las = 1)
+plot(
+  x=dat_cal.1.RP.re$pred, #x is predicted risk from the 
+  y=dat_cal.1.RP.re$obs,
+  type = "l", 
+  lty = 1, 
+  xlim = c(0, 1),
+  ylim = c(0, 1), 
+  lwd = 2,
+  xlab = "Predicted risk from developed model",
+  ylab = "Predicted risk from refitted model",  
+  bty = "n" #no box
+)
+
+lines(dat_cal.1.RP.re$pred, 
+      dat_cal.1.RP.re$lower, 
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+lines(dat_cal.1.RP.re$pred, 
+      dat_cal.1.RP.re$upper,
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+abline(0, 1, lwd = 2, lty = 2, col = 2)
+legend("bottomright",
+        c("Ideal calibration",
+          "Calibration curve based on secondary Royston-Parmar model",
+          "95% confidence interval"),
+        col = c(2, 1, 1),
+        lty = c(2, 1, 2),
+        lwd = c(2, 2, 2),
+        bty = "n",
+        cex = 0.85)
+
+# Numerical measures
+absdiff_cph.1.RP.re <- abs(dat_cal.1.RP.re$pred - dat_cal.1.RP.re$obs)
+
+numsum_cph.1.RP.re <- c(
+  "ICI" = mean(absdiff_cph.1.RP.re),
+  setNames(quantile(absdiff_cph.1.RP.re, c(0.5, 0.9)), c("E50", "E90")),
+  "Emax" = max(absdiff_cph.1.RP.re)
+)
+numsum_cph.1.RP.re
+
+
+
+
+```
+```{r not run}
+#------PINE------
+
+
+#Observed 
+#observed outcome frequency 
+
+obj.fre.6<-24/200
+
+#mean predicted risk 
+#exp_t.1 <-mean(1-data5y.1v$pred)
+
+cf6<-log(((obj.fre.6)/(1-obj.fre.6))/((exp_t.6)/(1-exp_t.6))) #correction factor  
+
+
+#data5y.1v$pred<-predict(model1,newdata = data5y.1v,type = "survival",times = 4)
+#data5y.1v$g_st<-log((1/data5y.1v$pred)-1)
+#val.1<-lm(g_st~lp.1,data = data5y.1v)
+#summary(val.1) #But this is -14.14??
+
+model6
+
+
+data5y.6v$pred.re<-1/(1+exp(-21.780+cf6+0.713*log(data5y.6v$year)-0.765 *log(data5y.6v$year)+data5y.6v$lp.6)) #recalibration survival probabilities
+
+data5y.6v$risk.re<-1-data5y.6v$pred.re
+
+
+
+dat_cal.6.RP.re <- cbind.data.frame(
+  "obs" = 1 - predict(vcal.6.RP,
+                      type = "survival",
+                      times = 4,
+                      newdata = data5y.6v)[[2]], #1-s(t=4) to get the refitted model predicted risk
+  
+  "lower" = 1 - predict(vcal.6.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 4,
+                        newdata = data5y.6v)[[4]],
+  
+  "upper" = 1 - predict(vcal.6.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 4,
+                        newdata = data5y.6v)[[3]],
+  "pred" = data5y.6v$risk.re
+)
+
+
+
+dat_cal.6.RP.re <- dat_cal.6.RP.re[order(dat_cal.6.RP.re$pred), ]
+
+par(xaxs = "i", yaxs = "i", las = 1)
+plot(
+  x=dat_cal.6.RP.re$pred, #x is predicted risk from the 
+  y=dat_cal.6.RP.re$obs,
+  type = "l", 
+  lty = 1, 
+  xlim = c(0, 1),
+  ylim = c(0, 1), 
+  lwd = 2,
+  xlab = "Predicted risk from developed model",
+  ylab = "Predicted risk from refitted model",  
+  bty = "n" #no box
+)
+
+lines(dat_cal.6.RP.re$pred, 
+      dat_cal.6.RP.re$lower, 
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+lines(dat_cal.6.RP.re$pred, 
+      dat_cal.6.RP.re$upper,
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+abline(0, 1, lwd = 2, lty = 2, col = 2)
+legend("bottomright",
+        c("Ideal calibration",
+          "Calibration curve based on secondary Royston-Parmar model",
+          "95% confidence interval"),
+        col = c(2, 1, 1),
+        lty = c(2, 1, 2),
+        lwd = c(2, 2, 2),
+        bty = "n",
+        cex = 0.85)
+
+# Numerical measures
+absdiff_cph.6.RP.re <- abs(dat_cal.6.RP.re$pred - dat_cal.6.RP.re$obs)
+
+numsum_cph.6.RP.re <- c(
+  "ICI" = mean(absdiff_cph.6.RP.re),
+  setNames(quantile(absdiff_cph.6.RP.re, c(0.5, 0.9)), c("E50", "E90")),
+  "Emax" = max(absdiff_cph.6.RP.re)
+)
+numsum_cph.6.RP.re
+
+
+
+
+
+```
+
+
+```{r Weak calibration not run}
 
 #---leave CamPalGN out----
 
 #Because if I use data5y.1v$pred<-predict(model1,newdata = data5y.1v,type = "survival",times = 4) #survival probabilities, the slope will be 1, which means it should get the actual not the predict one.
 
-data5y.1v$pred.act<-predict(vcal.1.RP,type = "survival",times = 4,newdata = data5y.1v)[[2]] #actual survival 
+# I am not sure if this is actual survival? data5y.1v$pred.act<-predict(vcal.1.RP,type = "survival",times = 4,newdata = data5y.1v)[[2]]  
+
+
+#Try estimate survivial by model development from validation dataset to get the actual survival
+
+model.val.1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.1v,k=1,bknots = c(log(1.147159),log(3.761807)),scale = "odds")
+
+data5y.1v$pred.act<-predict(model.val.1,type = "survival",times = 4,newdata = data5y.1v)[[2]] #actual survival
 
 data5y.1v$g_st<-log((1/data5y.1v$pred.act)-1)
 
@@ -1631,15 +1902,17 @@ summary(val.1)
 
 calslope_summary.1 <- c(
   "calibration slope" = val.1$coefficients[2],
-  "2.5 %"  = val.1$coefficients[2] - 1.96 * 0.001374,
-  "97.5 %" = val.1$coefficients[2] + 1.96 * 0.001374
+  "2.5 %"  = val.1$coefficients[2] - 1.96 * 0.04585,
+  "97.5 %" = val.1$coefficients[2] + 1.96 * 0.04585
 )
 
 calslope_summary.1
 
 #---leave ICICLE out----
 
-data5y.2v$pred.act<-predict(vcal.2.RP,type = "survival",times = 4,newdata = data5y.2v)[[2]]
+#data5y.2v$pred.act<-predict(vcal.2.RP,type = "survival",times = 4,newdata = data5y.2v)[[2]]
+
+#model.val.2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.2v,k=1,bknots = c(log(1.601643),log(3.827515)),scale = "odds") #Warning: Ran out of iterations and did not converge
 
 data5y.2v$g_st<-log((1/data5y.2v$pred.act)-1)
 
@@ -1658,7 +1931,9 @@ calslope_summary.2
 
 #---leave NYPUM out----
 
-data5y.3v$pred.act<-predict(vcal.3.RP,type = "survival",times = 4,newdata = data5y.3v)[[2]]
+#data5y.3v$pred.act<-predict(vcal.3.RP,type = "survival",times = 4,newdata = data5y.3v)[[2]]
+
+#model.val.3<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.3v,k=1,bknots = c(log(0.8925394),log(3.789185)),scale = "odds") #Warning: Ran out of iterations and did not converge
 
 data5y.3v$g_st<-log((1/data5y.3v$pred.act)-1)
 
@@ -1676,14 +1951,17 @@ calslope_summary.3
 
 #---leave ParkWest out----
 
+#data5y.4v$pred.act<-predict(vcal.4.RP,type = "survival",times = 4,newdata = data5y.4v)[[2]]
 
-data5y.4v$pred.act<-predict(vcal.4.RP,type = "survival",times = 4,newdata = data5y.4v)[[2]]
+#model.val.4<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.4v,k=1,bknots = c(log(1.990418),log(3.811088)),scale = "odds") #Warning: Ran out of iterations and did not converge
+
+#data5y.4v$pred.act<-predict(model.val.4,type = "survival",times = 4,newdata = data5y.4v)[[2]]
 
 data5y.4v$g_st<-log((1/data5y.4v$pred.act)-1)
 
 val.4<-lm(g_st~lp.4,data = data5y.4v)
 
-#summary(val.4)
+summary(val.4)
 
 calslope_summary.4 <- c(
   "calibration slope" = val.4$coefficients[2],
@@ -1695,7 +1973,11 @@ calslope_summary.4
 
 #---leave PICNICS out----
 
-data5y.5v$pred.act<-predict(vcal.5.RP,type = "survival",times = 4,newdata = data5y.5v)[[2]]
+#data5y.5v$pred.act<-predict(vcal.5.RP,type = "survival",times = 4,newdata = data5y.5v)[[2]]
+
+model.val.5<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.5v,k=1,bknots = c(log(0.1067762),log(3.8987)),scale = "odds")
+
+data5y.5v$pred.act<-predict(model.val.5,type = "survival",times = 4,newdata = data5y.5v)[[2]]
 
 data5y.5v$g_st<-log((1/data5y.5v$pred.act)-1)
 
@@ -1705,8 +1987,8 @@ val.5<-lm(g_st~lp.5,data = data5y.5v)
 
 calslope_summary.5 <- c(
   "calibration slope" = val.5$coefficients[2],
-  "2.5 %"  = val.5$coefficients[2] - 1.96 * 0.002963,
-  "97.5 %" = val.5$coefficients[2] + 1.96 * 0.002963
+  "2.5 %"  = val.5$coefficients[2] - 1.96 * 0.05232,
+  "97.5 %" = val.5$coefficients[2] + 1.96 * 0.05232
 )
 
 calslope_summary.5
@@ -1714,7 +1996,11 @@ calslope_summary.5
 
 #---leave PINE out----
 
-data5y.6v$pred.act<-predict(vcal.6.RP,type = "survival",times = 4,newdata = data5y.6v)[[2]]
+#data5y.6v$pred.act<-predict(vcal.6.RP,type = "survival",times = 4,newdata = data5y.6v)[[2]]
+
+model.val.6<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.6v,k=1,bknots = c(log(0.5557837),log(3.978097)),scale = "odds")
+
+data5y.6v$pred.act<-predict(model.val.6,type = "survival",times = 4,newdata = data5y.6v)[[2]]
 
 data5y.6v$g_st<-log((1/data5y.6v$pred.act)-1)
 
@@ -1724,8 +2010,8 @@ val.6<-lm(g_st~lp.6,data = data5y.6v)
 
 calslope_summary.6 <- c(
   "calibration slope" = val.6$coefficients[2],
-  "2.5 %"  = val.6$coefficients[2] - 1.96 * 0.001036,
-  "97.5 %" = val.6$coefficients[2] + 1.96 * 0.001036
+  "2.5 %"  = val.6$coefficients[2] - 1.96 * 0.0210,
+  "97.5 %" = val.6$coefficients[2] + 1.96 * 0.0210
 )
 
 calslope_summary.6
@@ -1734,7 +2020,7 @@ calslope_summary.6
 ```
 
 
-```{r mean and weak calibration 4 year}
+```{r mean and weak calibration 4 year not run}
 
 OE_summary.1
 OE_summary.2
