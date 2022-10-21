@@ -1642,63 +1642,70 @@ ggplot(data5y.event, aes(x=clus, y=agebl, fill=clus)) +
 data5y.event%>%
   group_by(clus)%>%
   summarise(sum(cens))
+
+ggplot(imp3.5y, aes(x=clus, y=agebl, fill=clus)) + 
+    geom_boxplot()
+
+
+#remove outlier in CamPalGN and PINE
+
+boxplot(data5y.1v$agebl, plot=FALSE)$out
+
+boxplot(data5y.6v$agebl, plot=FALSE)$out
+
+
+data5y.1v<-imp3.5y%>%
+  filter(clus=="CamPalGN")
+
+data5y.1v<-data5y.1v%>%
+  filter(agebl>44.15)
+
+data5y.6v<-data5y.6v%>%
+  filter(agebl>50.1)
+  
+
+
 ```
 
-```{r recalibration}
+```{r recalibration1}
 #----CamPalGN----
 
-#Observed 
-#observed outcome frequency 
-
-obj.fre.1<-4/129
-
-#mean predicted risk 
-#exp_t.1 <-mean(1-data5y.1v$pred)
-
-cf1<-log(((obj.fre.1)/(1-obj.fre.1))/((exp_t.1)/(1-exp_t.1))) #correction factor  -1.07304
-
-
-data5y.1v$pred<-predict(model1,newdata = data5y.1v,type = "survival",times = 4)
-data5y.1v$g_st<-log((1/data5y.1v$pred)-1)
-val.1<-lm(g_st~lp.1,data = data5y.1v)
-summary(val.1) #But this is -14.14??
-
-model1
-
-gamma.m1 <- model1$res[c("gamma0", "gamma1", "gamma2"), "est"]
-
-rcs.mod1<-as.data.frame(basis(model1$knots,log(data5y.1v$year))) #basis spline
-
-data5y.1v$rcs1<-rcs.mod1[,2]
-   
-data5y.1v$rcs2<-rcs.mod1[,3]
-
-data5y.1v$pred.re<-1/(1+exp(-17.5665135+0.9822*log(data5y.1v$year)-0.4243082*data5y.1v$rcs2+data5y.1v$lp.1)) #survival probabilities
-
-data5y.1v$risk.re<-1-data5y.1v$pred.re
-
-model1.re<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.1,k=1,bknots = c(log(1.147159),log(3.761807)),scale = "odds")
-
-data5y.1v$pred.re<-predict(model1.re,newdata = data5y.1v,type = "survival",times = 4)[[2]]
-
 #Try t=4
+
+#rcs.mod1<-as.data.frame(basis(model1$knots,log(4))) #basis spline
+#data5y.1v$rcs1<-rcs.mod1[,2]
+#data5y.1v$rcs2<-rcs.mod1[,3]
+#data5y.1v$pred.re<-1/(1+exp(-17.5665135+0.9822*log(4)-0.4243082*data5y.1v$rcs2+data5y.1v$lp.1))
+#data5y.1v$risk.re<-1-data5y.1v$pred.re
+
+#This is right!!!! Finally!!! t=4 is right
 
 rcs.mod1<-as.data.frame(basis(model1$knots,log(4))) #basis spline
 data5y.1v$rcs1<-rcs.mod1[,2]
 data5y.1v$rcs2<-rcs.mod1[,3]
-data5y.1v$pred.re<-1/(1+exp(-17.5665135+0.9822*log(4)-0.4243082*data5y.1v$rcs2+data5y.1v$lp.1))
-data5y.1v$risk.re<-1-data5y.1v$pred.re
 
-#This is right!!!! Finally!!! t=4 is right
+log((1-obj.1$surv)/mean(1-data5y.1v$pred)) #ln mean O/E risk ratio 
+
+model1$res[c("gamma0", "gamma1", "gamma2"), "est"]
+
+model1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.1,k=1,bknots = c(log(0.1067762),log(3.978097)),scale = "odds")
+
+
+#linear predictor method 1
+# Design matrix of predictors
+des_matr1<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+hybl,data=data5y.1v))
+des_matr1$`(Intercept)` <- NULL
 
 coef1.re<-c(model1$coefficients[4],model1$coefficients[5],model1$coefficients[6],model1$coefficients[7])
 data5y.1v$lp.1.re <- as.vector(as.matrix(des_matr1) %*% cbind(coef1.re))
 
-rcs.mod1<-as.data.frame(basis(model1$knots,log(4))) #basis spline
-data5y.1v$rcs1<-rcs.mod1[,2]
-data5y.1v$rcs2<-rcs.mod1[,3]
-data5y.1v$pred.re<-1/(1+exp(-17.5665135-1.07304+0.9822*log(4)-0.4243082*data5y.1v$rcs2+data5y.1v$lp.1.re))
+data5y.1v$pred.re<-1/(1+exp(-17.5665135-0.9346098+0.9821521*log(4)-0.4243082*data5y.1v$rcs2+data5y.1v$lp.1.re))
+
+(1-obj.1$surv)/mean(1-data5y.1v$pred.re)
+
 data5y.1v$risk.re<-1-data5y.1v$pred.re
+
+#calslope_summary.1
 
 
 dat_cal.1.RP.re <- cbind.data.frame(
@@ -1770,38 +1777,29 @@ numsum_cph.1.RP.re <- c(
 )
 numsum_cph.1.RP.re
 
-
-
-
 ```
-```{r not run}
+
+```{r recalibration2}
 #------PINE------
 
+rcs.mod6<-as.data.frame(basis(model6$knots,log(4))) #basis spline
+data5y.6v$rcs1<-rcs.mod6[,2]
+data5y.6v$rcs2<-rcs.mod6[,3]
 
-#Observed 
-#observed outcome frequency 
+log((1-obj.6$surv)/mean(1-data5y.6v$pred)) #ln mean O/E risk ratio 
 
-obj.fre.6<-24/200
+model6$res[c("gamma0", "gamma1", "gamma2"), "est"]
 
-#mean predicted risk 
-#exp_t.1 <-mean(1-data5y.1v$pred)
+des_matr6<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+hybl,data=data5y.6v))
+des_matr6$`(Intercept)` <- NULL
+coef6.re<-c(model6$coefficients[4],model6$coefficients[5],model6$coefficients[6],model6$coefficients[7])
+data5y.6v$lp.1.re <- as.vector(as.matrix(des_matr6) %*% cbind(coef6.re))
 
-cf6<-log(((obj.fre.6)/(1-obj.fre.6))/((exp_t.6)/(1-exp_t.6))) #correction factor  
+data5y.6v$pred.re<-1/(1+exp(-21.7801977+0.3555012+0.7125373*log(4)-0.7653505*data5y.6v$rcs2+data5y.6v$lp.6))
 
-
-#data5y.1v$pred<-predict(model1,newdata = data5y.1v,type = "survival",times = 4)
-#data5y.1v$g_st<-log((1/data5y.1v$pred)-1)
-#val.1<-lm(g_st~lp.1,data = data5y.1v)
-#summary(val.1) #But this is -14.14??
-
-model6
-
-
-data5y.6v$pred.re<-1/(1+exp(-21.780+cf6+0.713*log(data5y.6v$year)-0.765 *log(data5y.6v$year)+data5y.6v$lp.6)) #recalibration survival probabilities
+(1-obj.6$surv)/mean(1-data5y.6v$pred.re)
 
 data5y.6v$risk.re<-1-data5y.6v$pred.re
-
-
 
 dat_cal.6.RP.re <- cbind.data.frame(
   "obs" = 1 - predict(vcal.6.RP,
