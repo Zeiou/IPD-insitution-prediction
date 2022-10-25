@@ -91,6 +91,397 @@ calslope_summary.1
 ```
 
 
+
+```{r PINE take out outlier not run this is not working}
+
+#Because the recalibration show there is not very good improve in PINE
+#Try take out all the outlier
+
+
+
+
+data5y.event%>%
+  group_by(clus)%>%
+  summarise(sum(cens))
+
+
+data5y.event%>%
+  group_by(clus)%>%
+  summarise(min(year),max(year))
+
+ggplot(imp3.5y, aes(x=clus, y=agebl, fill=clus)) + 
+    geom_boxplot()
+
+ggplot(data5y.event, aes(x=clus, y=agebl, fill=clus)) + 
+    geom_boxplot()
+
+boxplot(data5y.6v$agebl, plot=FALSE)$out
+
+data5y.6vo<-data5y.6v%>%
+  filter(agebl>55) #take out 15 outlier
+
+#Take all below 55 years out
+
+data5y.6vo$pred.o<-predict(model6,newdata = data5y.6vo,type = "survival",times = 4)[[2]]
+
+data5y.6vo$risk.o <-(1-data5y.6vo$pred.o) #predicted risk, as 1 - S(t|X),the probabilities of events
+
+data5y.6vo$risk.cll <- log(-log(1-data5y.6vo$risk.o)) #complementary log-log link
+
+#Check location of knots again
+
+data5y.6vo%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year)) 
+
+vcal.6.RP.o <- flexsurvspline(Surv(year, cens) ~ risk.cll, data = data5y.6vo, k=1,bknots = c(log(0.5557837),log(3.978097)),scale = "odds")
+
+rcs.mod6<-as.data.frame(basis(model6$knots,log(4))) #basis spline
+data5y.6vo$rcs1<-rcs.mod6[,2]
+data5y.6vo$rcs2<-rcs.mod6[,3]
+
+obj.6.o <- summary(survfit(
+  Surv(year, cens) ~ 1, 
+  data = data5y.6vo),
+  times = 4) 
+
+log((1-obj.6.o$surv)/mean(1-data5y.6vo$pred)) #ln mean O/E risk ratio 
+
+model6$res[c("gamma0", "gamma1", "gamma2"), "est"]
+
+des_matr6<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+hybl,data=data5y.6vo))
+des_matr6$`(Intercept)` <- NULL
+coef6.re<-c(model6$coefficients[4],model6$coefficients[5],model6$coefficients[6],model6$coefficients[7])
+data5y.6vo$lp.6.re <- as.vector(as.matrix(des_matr6) %*% cbind(coef6.re))
+
+data5y.6vo$pred.re<-1/(1+exp(-21.7801977+0.3555012+0.7125373*log(4)-0.7653505*data5y.6vo$rcs2+data5y.6vo$lp.6.re))
+
+data5y.6vo$pred.re<-predict(model6,newdata=data5y.6vo,type = "survival",times = 4)[[2]]
+
+(1-obj.6.o$surv)/mean(1-data5y.6vo$pred.re)
+
+data5y.6vo$risk.re<-1-data5y.6vo$pred.re
+
+
+dat_cal.6.RP.re <- cbind.data.frame(
+  "obs" = 1 - predict(vcal.6.RP,
+                      type = "survival",
+                      times = 4,
+                      newdata = data5y.6vo)[[2]], #1-s(t=4) to get the refitted model predicted risk
+  
+  "lower" = 1 - predict(vcal.6.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 4,
+                        newdata = data5y.6vo)[[4]],
+  
+  "upper" = 1 - predict(vcal.6.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 4,
+                        newdata = data5y.6vo)[[3]],
+  "pred" = data5y.6vo$risk.re
+)
+
+
+
+dat_cal.6.RP.re <- dat_cal.6.RP.re[order(dat_cal.6.RP.re$pred), ]
+
+par(xaxs = "i", yaxs = "i", las = 1)
+plot(
+  x=dat_cal.6.RP.re$pred, #x is predicted risk from the 
+  y=dat_cal.6.RP.re$obs,
+  type = "l", 
+  lty = 1, 
+  xlim = c(0, 1),
+  ylim = c(0, 1), 
+  lwd = 2,
+  xlab = "Predicted risk from developed model",
+  ylab = "Predicted risk from refitted model",  
+  bty = "n" #no box
+)
+
+lines(dat_cal.6.RP.re$pred, 
+      dat_cal.6.RP.re$lower, 
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+lines(dat_cal.6.RP.re$pred, 
+      dat_cal.6.RP.re$upper,
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+abline(0, 1, lwd = 2, lty = 2, col = 2)
+legend("bottomright",
+        c("Ideal calibration",
+          "Calibration curve based on secondary Royston-Parmar model",
+          "95% confidence interval"),
+        col = c(2, 1, 1),
+        lty = c(2, 1, 2),
+        lwd = c(2, 2, 2),
+        bty = "n",
+        cex = 0.85)
+
+# Numerical measures
+absdiff_cph.6.RP.re <- abs(dat_cal.6.RP.re$pred - dat_cal.6.RP.re$obs)
+
+numsum_cph.6.RP.re <- c(
+  "ICI" = mean(absdiff_cph.6.RP.re),
+  setNames(quantile(absdiff_cph.6.RP.re, c(0.5, 0.9)), c("E50", "E90")),
+  "Emax" = max(absdiff_cph.6.RP.re)
+)
+numsum_cph.6.RP.re
+
+```
+
+
+
+```{r not run yet stratified cox}
+
+#5 year prediction
+
+
+#---leave CamPalGN out----
+
+data5y.1<-imp3.5y%>%
+  filter(clus!="CamPalGN")
+
+data5y.1v<-imp3.5y%>%
+  filter(clus=="CamPalGN")
+
+
+
+cox.s<-coxph(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal,data=data5y.1,x=T)
+
+data5y.1v$lp<-predict(cox.s,newdata = data5y.1v,type = "lp")
+
+# Harrell's C
+harrell_C_1v <- concordance(Surv(year,cens) ~ lp, 
+                               data5y.1v, 
+                               reverse = TRUE)
+# Uno's C
+Uno_C_1v <- concordance(Surv(year,cens) ~ lp, 
+                           data5y.1v, 
+                           reverse = TRUE,
+                           timewt = "n/G2")
+
+basehaz(cox.s)
+
+
+
+# Observed
+obj.1 <- summary(survfit(
+  Surv(year, cens) ~ 1, 
+  data = data5y.1v),
+  times = 5)
+
+#The observed is estimated using the complementary of the Kaplan-Meier curve at the fixed time point.
+
+obs_t.1 <- 1 - obj.1$surv
+
+data5y.1v$pred.cox <- riskRegression::predictRisk(cox.s, 
+                         newdata = data5y.1v, 
+                         times = 5)
+
+# Expected
+exp_t.1 <-mean(data5y.1v$pred.cox) #predicts risk, as 1 - S(t|X)
+
+
+# Observed / Expected ratio
+OE_t.1 <- obs_t.1 / exp_t.1
+
+OE_summary.1 <- c(
+  "OE" = OE_t.1,
+  "2.5 %" = OE_t.1 * exp(-qnorm(1 - alpha / 2) * sqrt(1 / obj.1$n.event)),
+  "97.5 %" = OE_t.1 * exp(+qnorm(1 - alpha / 2) * sqrt(1 / obj.1$n.event))
+)
+
+OE_summary.1
+
+#RP is better than cox
+
+
+
+val.1 <- coxph(Surv(year, cens) ~ lp, data = data5y.1v)
+
+
+  calslope_summary.1 <- c(
+  "calibration slope" = val.1$coef,
+  "2.5 %"  = val.1$coef - qnorm(1 - alpha / 2) * sqrt(val.1$var),
+  "97.5 %" = val.1$coef + qnorm(1 - alpha / 2) * sqrt(val.1$var)
+)
+
+calslope_summary.1
+
+#Weak calibration show the strata cox is better,but the moderate cox is RP better.
+#How to do the weak calibration in strata cox?
+
+
+
+data5y.1v$risk <- riskRegression::predictRisk(cox.s, 
+                         newdata = data5y.1v, 
+                         times = 5)
+
+
+data5y.1v$risk.cll <- log(-log(1-data5y.1v$risk)) #complementary log-log link
+
+# Estimate actual risk
+
+vcal.1 <- cph(Surv(year, cens) ~ rcs(risk.cll, 3),
+                 x = T,
+                 y = T,
+                 surv = T,
+                 data = data5y.1v
+) 
+
+#Q1:Should I still use Cox with RCS??
+#Q2:What is the refitted model?
+
+#survest function is to estimate survival probabilities
+
+dat_cal.1 <- cbind.data.frame(
+  "obs" = 1 - rms::survest(vcal.1,
+                           times = 5,
+                           newdata = data5y.1v)$surv, #1-s(t=5) to get the refitted model predicted risk
+  
+  "lower" = 1 - rms::survest(vcal.1,
+                             times = 5,
+                             newdata = data5y.1v)$upper,
+  
+  "upper" = 1 - rms::survest(vcal.1,
+                             times = 5,
+                             newdata = data5y.1v)$lower,
+  "pred" = data5y.1v$risk
+)
+
+
+dat_cal.1 <- dat_cal.1[order(dat_cal.1$pred), ]
+
+par(xaxs = "i", yaxs = "i", las = 1)
+plot(
+  x=dat_cal.1$pred, #x is predicted risk from the 
+  y=dat_cal.1$obs,
+  type = "l", 
+  lty = 1, 
+  xlim = c(0, 1),
+  ylim = c(0, 1), 
+  lwd = 2,
+  xlab = "Predicted risk from developed model",
+  ylab = "Predicted risk from refitted model",  
+  bty = "n" #no box
+)
+
+lines(dat_cal.1$pred, 
+      dat_cal.1$lower, 
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+lines(dat_cal.1$pred, 
+      dat_cal.1$upper,
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+abline(0, 1, lwd = 2, lty = 2, col = 2)
+legend("bottomright",
+        c("Ideal calibration",
+          "Calibration curve based on secondary Cox model",
+          "95% confidence interval"),
+        col = c(2, 1, 1),
+        lty = c(2, 1, 2),
+        lwd = c(2, 2, 2),
+        bty = "n",
+        cex = 0.85)
+
+# Numerical measures
+absdiff_cph.1 <- abs(dat_cal.1$pred - dat_cal.1$obs)
+
+numsum_cph.1 <- c(
+  "ICI" = mean(absdiff_cph.1),
+  setNames(quantile(absdiff_cph.1, c(0.5, 0.9)), c("E50", "E90")),
+  "Emax" = max(absdiff_cph.1)
+)
+numsum_cph.1
+```
+
+```{r not run compare then single imputation}
+
+#Because only 22 missing MMSE, 8 missing MDS-UPDRS
+
+data5%>%
+  group_by(study)%>%
+  filter(is.na(mmsebltotal))%>%
+  summarise(n()) # 6 in NYPUM, 1 in PICNICS, 15 in PINE
+
+data5$id<-seq(nrow(data5))  
+
+data5%>%
+   group_by(study)%>%
+   filter(is.na(mmsebltotal))%>%
+   select(id)#see id
+
+
+data5%>%
+  group_by(study)%>%
+  filter(is.na(mdsupdrspart3bltotalconvertedasa))%>%
+  summarise(n())  # 7 in PICNICS, 1 in PINE
+
+data5%>%
+  group_by(study)%>%
+  filter(is.na(mdsupdrspart3bltotalconvertedasa))%>%
+  select(id)
+
+#Check the jomo to see if the value impute is the similar
+
+imp3%>%
+  filter(id==286|id==289|id==294|id==310|id==351|id==384)%>%
+  group_by(Imputation)%>%
+  select(mmsebltotal,Imputation)  #mmse range from 25-30
+
+data5%>%
+  filter(study=="NYPUM")%>%
+  summarise(mean(mmsebltotal,na.rm=T),median(mmsebltotal,na.rm=T)) #mean=28.55 median=29
+
+imp3%>%
+  filter(id==764)%>%
+  group_by(Imputation)%>%
+  select(mmsebltotal,Imputation)
+
+
+data5%>%
+  filter(study=="PICNICS")%>%
+  summarise(mean(mmsebltotal,na.rm=T),median(mmsebltotal,na.rm=T)) #mean=28.68 median=29
+
+
+imp3%>%
+  filter(id==847|id==886|id==900|id==913|id==926|id==933|id==954|id==965|id==979|id==1005|id==1012|id==1015|id==1023|id==1032|id==1037)%>%
+  group_by(Imputation)%>%
+  select(mmsebltotal,Imputation)
+
+data5%>%
+  filter(study=="PINE")%>%
+  summarise(mean(mmsebltotal,na.rm=T),median(mmsebltotal,na.rm=T)) #mean=28.12 median=29
+
+#Impute medain to mmse
+
+imp3%>%
+  filter(id==578|id==667|id==692|id==697|id==757|id==765|id==766)%>%
+  group_by(Imputation)%>%
+  select(mdsupdrspart3bltotalconvertedasa,Imputation) #Big range???
+
+data5%>%
+  filter(study=="PICNICS")%>%
+  summarise(mean(mdsupdrspart3bltotalconvertedasa,na.rm=T),median(mdsupdrspart3bltotalconvertedasa,na.rm=T)) #mean=30,median=29
+
+imp3%>%
+  filter(id==973)%>%
+  group_by(Imputation)%>%
+  select(mdsupdrspart3bltotalconvertedasa,Imputation)
+
+
+data5%>%
+  filter(study=="PINE")%>%
+  summarise(mean(mdsupdrspart3bltotalconvertedasa,na.rm=T),median(mdsupdrspart3bltotalconvertedasa,na.rm=T)) #mean=32,median=31.1
+```
 ```{r }
 
 #---leave CamPalGN out----
