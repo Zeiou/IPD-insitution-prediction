@@ -1020,3 +1020,516 @@ calslope_summary.5.10
 calslope_summary.6.10
 
 ```
+
+```{r  recalibration year7}
+
+#----CamPalGN-----
+
+model1.10.re<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.1,k=1,bknots = c(log(1.147159),log(6.773443)),scale = "odds")  #change the knots position
+
+rcs.mod1.10<-as.data.frame(basis(model1.10.re$knots,log(7))) #basis spline
+data10y.1v$rcs1<-rcs.mod1.10[,2]
+data10y.1v$rcs2<-rcs.mod1.10[,3]
+
+log((1-obj.1.10$surv)/mean(1-data10y.1v$pred)) #ln mean O/E risk ratio 
+
+model1.10.re$res[c("gamma0", "gamma1", "gamma2"), "est"]
+
+data10y.1v$pred.re<-1/(1+exp(-15.9470580-0.494809+1.7116708*data10y.1v$rcs1-0.7852889*data10y.1v$rcs2+data10y.1v$lp.1.10)) #change the knots position and s(lnt;r) but keep the linear predictor the same
+
+(1-obj.1.10$surv)/mean(1-data10y.1v$pred.re) #Mean calibration improve
+#Before is (1-obj.1$surv)/mean(1-data5y.1v$pred), 0.6096874, now is 0.8136237
+
+data10y.1v$risk.re<-1-data10y.1v$pred.re
+
+dat_cal.1.10.RP.re <- cbind.data.frame(
+  "obs" = 1 - predict(vcal.1.10.RP,
+                      type = "survival",
+                      times = 7,
+                      newdata = data10y.1v)[[2]], #1-s(t=4) to get the refitted model predicted risk
+  
+  "lower" = 1 - predict(vcal.1.10.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 7,
+                        newdata = data10y.1v)[[4]],
+  
+  "upper" = 1 - predict(vcal.1.10.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 7,
+                        newdata = data10y.1v)[[3]],
+  "pred" = data10y.1v$risk.re
+)
+
+
+dat_cal.1.10.RP.re <- dat_cal.1.10.RP.re[order(dat_cal.1.10.RP.re$pred), ]
+
+par(xaxs = "i", yaxs = "i", las = 1)
+plot(
+  x=dat_cal.1.10.RP.re$pred, #x is predicted risk from the 
+  y=dat_cal.1.10.RP.re$obs,
+  type = "l", 
+  lty = 1, 
+  xlim = c(0, 1),
+  ylim = c(0, 1), 
+  lwd = 2,
+  xlab = "Predicted risk from developed model",
+  ylab = "Predicted risk from refitted model",  
+  bty = "n" #no box
+)
+
+lines(dat_cal.1.10.RP.re$pred, 
+      dat_cal.1.10.RP.re$lower, 
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+lines(dat_cal.1.10.RP.re$pred, 
+      dat_cal.1.10.RP.re$upper,
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+abline(0, 1, lwd = 2, lty = 2, col = 2)
+legend("bottomright",
+        c("Ideal calibration",
+          "Calibration curve based on secondary Royston-Parmar model",
+          "95% confidence interval"),
+        col = c(2, 1, 1),
+        lty = c(2, 1, 2),
+        lwd = c(2, 2, 2),
+        bty = "n",
+        cex = 0.85)
+
+# Numerical measures
+absdiff_cph.1.10.RP.re <- abs(dat_cal.1.10.RP.re$pred - dat_cal.1.10.RP.re$obs)
+
+numsum_cph.1.10.RP.re <- c(
+  "ICI" = mean(absdiff_cph.1.10.RP.re),
+  setNames(quantile(absdiff_cph.1.10.RP.re, c(0.5, 0.9)), c("E50", "E90")),
+  "Emax" = max(absdiff_cph.1.10.RP.re)
+)
+numsum_cph.1.10.RP.re
+
+#----NYPUM-----
+
+model3.10.re<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.3,k=1,bknots = c(log(0.8925394),log(6.735113)),scale = "odds")  #change the knots position
+
+rcs.mod3.10<-as.data.frame(basis(model3.10.re$knots,log(7))) #basis spline
+data10y.3v$rcs1<-rcs.mod3.10[,2]
+data10y.3v$rcs2<-rcs.mod3.10[,3]
+
+log((1-obj.3.10$surv)/mean(1-data10y.3v$pred)) #ln mean O/E risk ratio 
+
+model3.10.re$res[c("gamma0", "gamma1", "gamma2"), "est"]
+
+data10y.3v$pred.re<-1/(1+exp(-15.5516366+0.2127671+1.5589806*data10y.3v$rcs1-0.6954149*data10y.3v$rcs2+data10y.3v$lp.3.10)) #change the knots position and s(lnt;r) but keep the linear predictor the same
+
+(1-obj.3.10$surv)/mean(1-data10y.3v$pred.re) #Mean calibration improve
+#Before is (1-obj.1$surv)/mean(1-data5y.1v$pred), 1.237097, now is 1.095688
+
+data10y.3v$risk.re<-1-data10y.3v$pred.re
+
+dat_cal.3.10.RP.re <- cbind.data.frame(
+  "obs" = 1 - predict(vcal.3.10.RP,
+                      type = "survival",
+                      times = 7,
+                      newdata = data10y.3v)[[2]], #1-s(t=4) to get the refitted model predicted risk
+  
+  "lower" = 1 - predict(vcal.3.10.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 7,
+                        newdata = data10y.3v)[[4]],
+  
+  "upper" = 1 - predict(vcal.3.10.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 7,
+                        newdata = data10y.3v)[[3]],
+  "pred" = data10y.3v$risk.re
+)
+
+
+dat_cal.3.10.RP.re <- dat_cal.3.10.RP.re[order(dat_cal.3.10.RP.re$pred), ]
+
+par(xaxs = "i", yaxs = "i", las = 1)
+plot(
+  x=dat_cal.3.10.RP.re$pred, #x is predicted risk from the 
+  y=dat_cal.3.10.RP.re$obs,
+  type = "l", 
+  lty = 1, 
+  xlim = c(0, 1),
+  ylim = c(0, 1), 
+  lwd = 2,
+  xlab = "Predicted risk from developed model",
+  ylab = "Predicted risk from refitted model",  
+  bty = "n" #no box
+)
+
+lines(dat_cal.3.10.RP.re$pred, 
+      dat_cal.3.10.RP.re$lower, 
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+lines(dat_cal.3.10.RP.re$pred, 
+      dat_cal.3.10.RP.re$upper,
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+abline(0, 1, lwd = 2, lty = 2, col = 2)
+legend("bottomright",
+        c("Ideal calibration",
+          "Calibration curve based on secondary Royston-Parmar model",
+          "95% confidence interval"),
+        col = c(2, 1, 1),
+        lty = c(2, 1, 2),
+        lwd = c(2, 2, 2),
+        bty = "n",
+        cex = 0.85)
+
+# Numerical measures
+absdiff_cph.3.10.RP.re <- abs(dat_cal.3.10.RP.re$pred - dat_cal.3.10.RP.re$obs)
+
+numsum_cph.3.10.RP.re <- c(
+  "ICI" = mean(absdiff_cph.3.10.RP.re),
+  setNames(quantile(absdiff_cph.3.10.RP.re, c(0.5, 0.9)), c("E50", "E90")),
+  "Emax" = max(absdiff_cph.3.10.RP.re)
+)
+numsum_cph.3.10.RP.re
+
+
+#----ParkWest-----
+
+model4.10.re<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.4,k=1,bknots = c(log(1.990418),log(6.729637)),scale = "odds")  #change the knots position
+
+rcs.mod4.10<-as.data.frame(basis(model4.10.re$knots,log(7))) #basis spline
+data10y.4v$rcs1<-rcs.mod4.10[,2]
+data10y.4v$rcs2<-rcs.mod4.10[,3]
+
+log((1-obj.4.10$surv)/mean(1-data10y.4v$pred)) #ln mean O/E risk ratio 
+
+model4.10.re$res[c("gamma0", "gamma1", "gamma2"), "est"]
+
+data10y.4v$pred.re<-1/(1+exp(-16.3312278-0.03665086+1.8903119*data10y.4v$rcs1-0.9449542*data10y.4v$rcs2+data10y.4v$lp.4.10)) #change the knots position and s(lnt;r) but keep the linear predictor the same
+
+(1-obj.4.10$surv)/mean(1-data10y.4v$pred.re) #Mean calibration improve
+#Before is (1-obj.1$surv)/mean(1-data5y.1v$pred), 0.96, now is 0.96
+
+data10y.4v$risk.re<-1-data10y.4v$pred.re
+
+dat_cal.4.10.RP.re <- cbind.data.frame(
+  "obs" = 1 - predict(vcal.4.10.RP,
+                      type = "survival",
+                      times = 7,
+                      newdata = data10y.4v)[[2]], #1-s(t=4) to get the refitted model predicted risk
+  
+  "lower" = 1 - predict(vcal.4.10.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 7,
+                        newdata = data10y.4v)[[4]],
+  
+  "upper" = 1 - predict(vcal.4.10.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 7,
+                        newdata = data10y.4v)[[3]],
+  "pred" = data10y.4v$risk.re
+)
+
+
+dat_cal.4.10.RP.re <- dat_cal.4.10.RP.re[order(dat_cal.4.10.RP.re$pred), ]
+
+par(xaxs = "i", yaxs = "i", las = 1)
+plot(
+  x=dat_cal.4.10.RP.re$pred, #x is predicted risk from the 
+  y=dat_cal.4.10.RP.re$obs,
+  type = "l", 
+  lty = 1, 
+  xlim = c(0, 1),
+  ylim = c(0, 1), 
+  lwd = 2,
+  xlab = "Predicted risk from developed model",
+  ylab = "Predicted risk from refitted model",  
+  bty = "n" #no box
+)
+
+lines(dat_cal.4.10.RP.re$pred, 
+      dat_cal.4.10.RP.re$lower, 
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+lines(dat_cal.4.10.RP.re$pred, 
+      dat_cal.4.10.RP.re$upper,
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+abline(0, 1, lwd = 2, lty = 2, col = 2)
+legend("bottomright",
+        c("Ideal calibration",
+          "Calibration curve based on secondary Royston-Parmar model",
+          "95% confidence interval"),
+        col = c(2, 1, 1),
+        lty = c(2, 1, 2),
+        lwd = c(2, 2, 2),
+        bty = "n",
+        cex = 0.85)
+
+# Numerical measures
+absdiff_cph.4.10.RP.re <- abs(dat_cal.4.10.RP.re$pred - dat_cal.4.10.RP.re$obs)
+
+numsum_cph.4.10.RP.re <- c(
+  "ICI" = mean(absdiff_cph.4.10.RP.re),
+  setNames(quantile(absdiff_cph.4.10.RP.re, c(0.5, 0.9)), c("E50", "E90")),
+  "Emax" = max(absdiff_cph.4.10.RP.re)
+)
+numsum_cph.4.10.RP.re
+
+
+#----PICNICS----
+
+model5.10.re<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.5,k=1,bknots = c(log(0.1067762),log(6.872005)),scale = "odds")  #change the knots position
+
+rcs.mod5.10<-as.data.frame(basis(model5.10.re$knots,log(7))) #basis spline
+data10y.5v$rcs1<-rcs.mod5.10[,2]
+data10y.5v$rcs2<-rcs.mod5.10[,3]
+
+log((1-obj.5.10$surv)/mean(1-data10y.5v$pred)) #ln mean O/E risk ratio 
+
+model5.10.re$res[c("gamma0", "gamma1", "gamma2"), "est"]
+
+data10y.5v$pred.re<-1/(1+exp(-16.166035-0.4202508+1.372743*data10y.5v$rcs1-0.328912*data10y.5v$rcs2+data10y.5v$lp.5.10)) #change the knots position and s(lnt;r) but keep the linear predictor the same
+
+(1-obj.5.10$surv)/mean(1-data10y.5v$pred.re) #Mean calibration improve
+#Before is 0.66, now is 0.87
+
+data10y.5v$risk.re<-1-data10y.5v$pred.re
+
+dat_cal.5.10.RP.re <- cbind.data.frame(
+  "obs" = 1 - predict(vcal.5.10.RP,
+                      type = "survival",
+                      times = 7,
+                      newdata = data10y.5v)[[2]], #1-s(t=4) to get the refitted model predicted risk
+  
+  "lower" = 1 - predict(vcal.5.10.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 7,
+                        newdata = data10y.5v)[[4]],
+  
+  "upper" = 1 - predict(vcal.5.10.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 7,
+                        newdata = data10y.5v)[[3]],
+  "pred" = data10y.5v$risk.re
+)
+
+
+dat_cal.5.10.RP.re <- dat_cal.5.10.RP.re[order(dat_cal.5.10.RP.re$pred), ]
+
+par(xaxs = "i", yaxs = "i", las = 1)
+plot(
+  x=dat_cal.5.10.RP.re$pred, #x is predicted risk from the 
+  y=dat_cal.5.10.RP.re$obs,
+  type = "l", 
+  lty = 1, 
+  xlim = c(0, 1),
+  ylim = c(0, 1), 
+  lwd = 2,
+  xlab = "Predicted risk from developed model",
+  ylab = "Predicted risk from refitted model",  
+  bty = "n" #no box
+)
+
+lines(dat_cal.5.10.RP.re$pred, 
+      dat_cal.5.10.RP.re$lower, 
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+lines(dat_cal.5.10.RP.re$pred, 
+      dat_cal.5.10.RP.re$upper,
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+abline(0, 1, lwd = 2, lty = 2, col = 2)
+legend("bottomright",
+        c("Ideal calibration",
+          "Calibration curve based on secondary Royston-Parmar model",
+          "95% confidence interval"),
+        col = c(2, 1, 1),
+        lty = c(2, 1, 2),
+        lwd = c(2, 2, 2),
+        bty = "n",
+        cex = 0.85)
+
+# Numerical measures
+absdiff_cph.5.10.RP.re <- abs(dat_cal.5.10.RP.re$pred - dat_cal.5.10.RP.re$obs)
+
+numsum_cph.5.10.RP.re <- c(
+  "ICI" = mean(absdiff_cph.5.10.RP.re),
+  setNames(quantile(absdiff_cph.5.10.RP.re, c(0.5, 0.9)), c("E50", "E90")),
+  "Emax" = max(absdiff_cph.5.10.RP.re)
+)
+numsum_cph.5.10.RP.re
+
+
+#----PINE----
+
+model6.10.re<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data10y.6,k=1,bknots = c(log(0.5557837),log(6.976044)),scale = "odds")  #change the knots position
+
+rcs.mod6.10<-as.data.frame(basis(model6.10.re$knots,log(7))) #basis spline
+data10y.6v$rcs1<-rcs.mod6.10[,2]
+data10y.6v$rcs2<-rcs.mod6.10[,3]
+
+log((1-obj.6.10$surv)/mean(1-data10y.6v$pred)) #ln mean O/E risk ratio 
+
+model6.10.re$res[c("gamma0", "gamma1", "gamma2"), "est"]
+
+data10y.6v$pred.re<-1/(1+exp(-19.0087726-0.05253184+1.5189759*data10y.6v$rcs1-0.6963724*data10y.6v$rcs2+data10y.6v$lp.6.10)) #change the knots position and s(lnt;r) but keep the linear predictor the same
+
+(1-obj.6.10$surv)/mean(1-data10y.6v$pred.re) #Mean calibration improve
+#Before is 0.95, now is 0.97
+
+data10y.6v$risk.re<-1-data10y.6v$pred.re
+
+dat_cal.6.10.RP.re <- cbind.data.frame(
+  "obs" = 1 - predict(vcal.6.10.RP,
+                      type = "survival",
+                      times = 7,
+                      newdata = data10y.6v)[[2]], #1-s(t=4) to get the refitted model predicted risk
+  
+  "lower" = 1 - predict(vcal.6.10.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 7,
+                        newdata = data10y.6v)[[4]],
+  
+  "upper" = 1 - predict(vcal.6.10.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 7,
+                        newdata = data10y.6v)[[3]],
+  "pred" = data10y.6v$risk.re
+)
+
+
+dat_cal.6.10.RP.re <- dat_cal.6.10.RP.re[order(dat_cal.6.10.RP.re$pred), ]
+
+par(xaxs = "i", yaxs = "i", las = 1)
+plot(
+  x=dat_cal.6.10.RP.re$pred, #x is predicted risk from the 
+  y=dat_cal.6.10.RP.re$obs,
+  type = "l", 
+  lty = 1, 
+  xlim = c(0, 1),
+  ylim = c(0, 1), 
+  lwd = 2,
+  xlab = "Predicted risk from developed model",
+  ylab = "Predicted risk from refitted model",  
+  bty = "n" #no box
+)
+
+lines(dat_cal.6.10.RP.re$pred, 
+      dat_cal.6.10.RP.re$lower, 
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+lines(dat_cal.6.10.RP.re$pred, 
+      dat_cal.6.10.RP.re$upper,
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+abline(0, 1, lwd = 2, lty = 2, col = 2)
+legend("bottomright",
+        c("Ideal calibration",
+          "Calibration curve based on secondary Royston-Parmar model",
+          "95% confidence interval"),
+        col = c(2, 1, 1),
+        lty = c(2, 1, 2),
+        lwd = c(2, 2, 2),
+        bty = "n",
+        cex = 0.85)
+
+# Numerical measures
+absdiff_cph.6.10.RP.re <- abs(dat_cal.6.10.RP.re$pred - dat_cal.6.10.RP.re$obs)
+
+numsum_cph.6.10.RP.re <- c(
+  "ICI" = mean(absdiff_cph.6.10.RP.re),
+  setNames(quantile(absdiff_cph.6.10.RP.re, c(0.5, 0.9)), c("E50", "E90")),
+  "Emax" = max(absdiff_cph.6.10.RP.re)
+)
+numsum_cph.6.10.RP.re
+
+```
+
+```{r Check outlier in model 7 year}
+imp3.10y%>%
+  group_by(clus)%>%
+  summarise(sum(cens))
+ #PINE has much more events than others
+
+ggplot(imp3.10y, aes(x=clus, y=agebl, fill=clus)) + 
+    geom_boxplot()
+
+imp3.10y%>%
+  filter(cens==1)%>%
+  group_by(clus)%>%
+  summarise(min(agebl),max(agebl),mean(agebl)) #PINE has one patient very young but even after remove it didn't improve,which means more impact the model than just outliers.
+
+
+ggplot(imp3.10y[imp3.10y$cens==1,], aes(x=clus, y=agebl, fill=clus)) + 
+    geom_boxplot()
+
+
+imp3.10y%>%
+  group_by(clus)%>%
+  summarise(min(agebl),max(agebl),mean(agebl),median(agebl)) #Look at the min and max age in groups, actually not that much difference.
+```
+
+```{r KM plot 7}
+agegroup1.7<-imp3.10y%>%
+  filter(agebl<60)
+
+agegroup2.7<-imp3.10y%>%
+  filter(agebl>=60 & agebl<80)
+
+agegroup3.7<-imp3.10y%>%
+  filter(agebl>=80)
+
+KM1.7<-survfit(Surv(year,cens)~clus,data=agegroup1.7)
+ggsurvplot(KM1.7,
+           ylab="Cumulative probability of institutionalisation",
+           xlab="Time to institutionalisation",
+           legend="top",
+           surv.median.line = "hv",
+           fun="event",
+           risk.table = F,
+           ggtheme = theme_bw(),
+           legend.labs=c("CamPalGN","NYPUM","ParkWest","PICNICS","PINE"))
+
+
+KM2.7<-survfit(Surv(year,cens)~clus,data=agegroup2.7)
+ggsurvplot(KM2.7,
+           ylab="Cumulative probability of institutionalisation",
+           xlab="Time to institutionalisation",
+           legend="top",
+           surv.median.line = "hv",
+           fun="event",
+           risk.table = F,
+           ggtheme = theme_bw(),
+           legend.labs=c("CamPalGN","NYPUM","ParkWest","PICNICS","PINE"))
+
+
+KM3.7<-survfit(Surv(year,cens)~clus,data=agegroup3.7)
+ggsurvplot(KM3.7,
+           ylab="Cumulative probability of institutionalisation",
+           xlab="Time to institutionalisation",
+           legend="top",
+           surv.median.line = "hv",
+           fun="event",
+           risk.table = F,
+           ggtheme = theme_bw(),
+           legend.labs=c("CamPalGN","NYPUM","ParkWest","PICNICS","PINE"))
+
+```
