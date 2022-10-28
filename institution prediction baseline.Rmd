@@ -534,7 +534,7 @@ PO1
 
 imp3.temp<-survSplit(Surv(year, cens) ~ ., data = imp3.new, cut = 4,
                   episode="timegroup")
-imp3.5y<-subset(imp3.temp, timegroup == 1) #only the first 5 year
+imp3.5y<-subset(imp3.temp, timegroup == 1) #only the first 4 year
 ```
 
 ```{r Harrell Uno}
@@ -1075,6 +1075,7 @@ OE_summary.6
 ```
 
 
+
 ```{r  Moderate calibration}
 
 #moderate calibration uses smooth curves of predicted risk from a more complex ‘secondary’ Cox model against the predicted risk from the development model 
@@ -1099,7 +1100,7 @@ data5y.1v%>%
 
 vcal.1.RP <- flexsurvspline(Surv(year, cens) ~ risk.cll, data = data5y.1v, k=1,bknots = c(log(1.147159),log(3.761807)),scale = "odds")
 
-#survest function is to estimate survival probabilities
+
 
 dat_cal.1.RP <- cbind.data.frame(
   "obs" = 1 - predict(vcal.1.RP,
@@ -1121,6 +1122,22 @@ dat_cal.1.RP <- cbind.data.frame(
   "pred" = data5y.1v$risk
 )
 
+
+#survest function is to estimate survival probabilities
+#dat_cal.1.RP <- cbind.data.frame(
+#"obs" = 1 - rms::survest(vcal.1.RP,
+#times = 4,
+#                      newdata = data5y.1v)$surv, #1-s(t=4) to get the refitted model predicted risk
+  
+#  "lower" = 1 - rms::survest(vcal.1.RP,
+#                        times = 4,
+#                        newdata = data5y.1v)$upper,
+  
+# "upper" = 1 - rms::survest(vcal.1.RP,
+#                            times = 4,
+#                       newdata = data5y.1v)$lower,
+#"pred" = data5y.1v$risk
+#)
 
 
 dat_cal.1.RP <- dat_cal.1.RP[order(dat_cal.1.RP$pred), ]
@@ -1629,6 +1646,8 @@ numsum_cph.6.RP
 #data5y.1v$pred.re<-1/(1+exp(-17.5665135+0.9822*log(4)-0.4243082*data5y.1v$rcs2+data5y.1v$lp.1))
 #data5y.1v$risk.re<-1-data5y.1v$pred.re
 
+#model1
+
 #This is right!!!! Finally!!! t=4 is right
 
 #Adding intercept and changing the knots location
@@ -1642,6 +1661,10 @@ data5y.1v$rcs2<-rcs.mod1[,3]
 log((1-obj.1$surv)/mean(1-data5y.1v$pred)) #ln mean O/E risk ratio 
 
 model1.re$res[c("gamma0", "gamma1", "gamma2"), "est"]
+
+#data5y.1v$lp.1 <- as.vector(as.matrix(des_matr1) %*% cbind(coef1))
+
+#data5y.1v$lp.1 <- data5y.1v$lp.1
 
 data5y.1v$pred.re<-1/(1+exp(-16.937753-0.9346098+1.575655*data5y.1v$rcs1-1.286890*data5y.1v$rcs2+data5y.1v$lp.1)) #change the knots position and s(lnt;r) but keep the linear predictor the same
 
@@ -2084,10 +2107,10 @@ data5y.6v$rcs2<-rcs.mod6[,3]
 model6.re$res[c("gamma0", "gamma1", "gamma2"), "est"]
 log((1-obj.6$surv)/mean(1-data5y.6v$pred))
 
-data5y.6v$pred.re<-1/(1+exp(-21.016487+0.3555012+1.127613*log(4)-1.261545*data5y.6v$rcs2.re+data5y.6v$lp.6))
+data5y.6v$pred.re<-1/(1+exp(-21.016487+0.3555012+1.127613*log(4)-1.261545*data5y.6v$rcs2+data5y.6v$lp.6))
 
 (1-obj.6$surv)/mean(1-data5y.6v$pred.re) #Mean calibration improve
-#(1-obj.6$surv)/mean(1-data5y.6v$pred) improve 1.42 to 1.13
+#(1-obj.6$surv)/mean(1-data5y.6v$pred) improve 1.42 to 1.14
 
 data5y.6v$risk.re<-1-data5y.6v$pred.re
 
@@ -2299,6 +2322,172 @@ calslope_summary.6 <- c(
 
 calslope_summary.6
 
+
+```
+
+```{r recalibration for Cam PINE}
+
+#----CamPalGN----
+
+#Change intercept based on weak calibration
+
+summary(val.1)
+
+data5y.1v$pred.re.1<-1/(1+exp(-16.937753-0.9346098+6.9+1.575655*data5y.1v$rcs1-1.286890*data5y.1v$rcs2+0.42*data5y.1v$lp.1))
+
+(1-obj.1$surv)/mean(1-data5y.1v$pred.re.1) #Mean calibration improve again
+
+#Before is (1-obj.1$surv)/mean(1-data5y.1v$pred.re), 0.8493298 to 1.04
+
+data5y.1v$risk.re.1<-1-data5y.1v$pred.re.1
+
+dat_cal.1.RP.re.1 <- cbind.data.frame(
+  "obs" = 1 - predict(vcal.1.RP,
+                      type = "survival",
+                      times = 4,
+                      newdata = data5y.1v)[[2]], #1-s(t=4) to get the refitted model predicted risk
+  
+  "lower" = 1 - predict(vcal.1.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 4,
+                        newdata = data5y.1v)[[4]],
+  
+  "upper" = 1 - predict(vcal.1.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 4,
+                        newdata = data5y.1v)[[3]],
+  "pred" = data5y.1v$risk.re.1
+)
+
+
+
+dat_cal.1.RP.re.1 <- dat_cal.1.RP.re.1[order(dat_cal.1.RP.re.1$pred), ]
+
+par(xaxs = "i", yaxs = "i", las = 1)
+plot(
+  x=dat_cal.1.RP.re.1$pred, #x is predicted risk from the 
+  y=dat_cal.1.RP.re.1$obs,
+  type = "l", 
+  lty = 1, 
+  xlim = c(0, 1),
+  ylim = c(0, 1), 
+  lwd = 2,
+  xlab = "Predicted risk from developed model",
+  ylab = "Predicted risk from refitted model",  
+  bty = "n" #no box
+)
+
+lines(dat_cal.1.RP.re.1$pred, 
+      dat_cal.1.RP.re.1$lower, 
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+lines(dat_cal.1.RP.re.1$pred, 
+      dat_cal.1.RP.re.1$upper,
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+abline(0, 1, lwd = 2, lty = 2, col = 2)
+legend("bottomright",
+        c("Ideal calibration",
+          "Calibration curve based on secondary Royston-Parmar model",
+          "95% confidence interval"),
+        col = c(2, 1, 1),
+        lty = c(2, 1, 2),
+        lwd = c(2, 2, 2),
+        bty = "n",
+        cex = 0.85)
+
+# Numerical measures
+absdiff_cph.1.RP.re.1 <- abs(dat_cal.1.RP.re.1$pred - dat_cal.1.RP.re.1$obs)
+
+numsum_cph.1.RP.re.1 <- c(
+  "ICI" = mean(absdiff_cph.1.RP.re.1),
+  setNames(quantile(absdiff_cph.1.RP.re.1, c(0.5, 0.9)), c("E50", "E90")),
+  "Emax" = max(absdiff_cph.1.RP.re.1)
+)
+numsum_cph.1.RP.re.1
+
+
+#----PINE----
+
+summary(val.6)
+
+data5y.6v$pred.re.1<-1/(1+exp(-21.016487+9.46+0.3555012+1.127613*log(4)-1.261545*data5y.6v$rcs2+0.42*data5y.6v$lp.6))
+
+(1-obj.6$surv)/mean(1-data5y.6v$pred.re.1) #Mean calibration improve
+#(1-obj.6$surv)/mean(1-data5y.6v$pred.re) improve 1.14 to 0.96
+
+data5y.6v$risk.re.1<-1-data5y.6v$pred.re.1
+
+dat_cal.6.RP.re.1 <- cbind.data.frame(
+  "obs" = 1 - predict(vcal.6.RP,
+                      type = "survival",
+                      times = 4,
+                      newdata = data5y.6v)[[2]], #1-s(t=4) to get the refitted model predicted risk
+  
+  "lower" = 1 - predict(vcal.6.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 4,
+                        newdata = data5y.6v)[[4]],
+  
+  "upper" = 1 - predict(vcal.6.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 4,
+                        newdata = data5y.6v)[[3]],
+  "pred" = data5y.6v$risk.re.1
+)
+
+dat_cal.6.RP.re.1 <- dat_cal.6.RP.re.1[order(dat_cal.6.RP.re.1$pred), ]
+
+par(xaxs = "i", yaxs = "i", las = 1)
+plot(
+  x=dat_cal.6.RP.re.1$pred, #x is predicted risk from the 
+  y=dat_cal.6.RP.re.1$obs,
+  type = "l", 
+  lty = 1, 
+  xlim = c(0, 1),
+  ylim = c(0, 1), 
+  lwd = 2,
+  xlab = "Predicted risk from developed model",
+  ylab = "Predicted risk from refitted model",  
+  bty = "n" #no box
+)
+
+lines(dat_cal.6.RP.re.1$pred, 
+      dat_cal.6.RP.re.1$lower, 
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+lines(dat_cal.6.RP.re.1$pred, 
+      dat_cal.6.RP.re.1$upper,
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+abline(0, 1, lwd = 2, lty = 2, col = 2)
+legend("bottomright",
+        c("Ideal calibration",
+          "Calibration curve based on secondary Royston-Parmar model",
+          "95% confidence interval"),
+        col = c(2, 1, 1),
+        lty = c(2, 1, 2),
+        lwd = c(2, 2, 2),
+        bty = "n",
+        cex = 0.85)
+
+# Numerical measures
+absdiff_cph.6.RP.re.1 <- abs(dat_cal.6.RP.re.1$pred - dat_cal.6.RP.re.1$obs)
+
+numsum_cph.6.RP.re.1 <- c(
+  "ICI" = mean(absdiff_cph.6.RP.re.1),
+  setNames(quantile(absdiff_cph.6.RP.re.1, c(0.5, 0.9)), c("E50", "E90")),
+  "Emax" = max(absdiff_cph.6.RP.re.1)
+)
+numsum_cph.6.RP.re.1
 
 ```
 

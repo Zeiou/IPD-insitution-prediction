@@ -1463,6 +1463,95 @@ numsum_cph.6.10.RP.re
 
 ```
 
+
+
+```{r recalibration PINE}
+
+summary(val.6.10)
+
+data10y.6v$pred.re.1<-1/(1+exp(-19.0087726-0.05253184+5.95+1.5189759*data10y.6v$rcs1-0.6963724*data10y.6v$rcs2+0.569*data10y.6v$lp.6.10))
+
+-14.31025+8.359801
+
+(1-obj.6.10$surv)/mean(1-data10y.6v$pred.re.1) #Mean calibration decrease
+#Before is 0.97,now 0.93
+
+data10y.6v$risk.re.1<-1-data10y.6v$pred.re.1
+
+dat_cal.6.10.RP.re.1 <- cbind.data.frame(
+  "obs" = 1 - predict(vcal.6.10.RP,
+                      type = "survival",
+                      times = 7,
+                      newdata = data10y.6v)[[2]], #1-s(t=4) to get the refitted model predicted risk
+  
+  "lower" = 1 - predict(vcal.6.10.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 7,
+                        newdata = data10y.6v)[[4]],
+  
+  "upper" = 1 - predict(vcal.6.10.RP,
+                        type = "survival",
+                        conf.int = T,
+                        times = 7,
+                        newdata = data10y.6v)[[3]],
+  "pred" = data10y.6v$risk.re.1
+)
+
+
+dat_cal.6.10.RP.re.1 <- dat_cal.6.10.RP.re.1[order(dat_cal.6.10.RP.re.1$pred), ]
+
+par(xaxs = "i", yaxs = "i", las = 1)
+plot(
+  x=dat_cal.6.10.RP.re.1$pred, #x is predicted risk from the 
+  y=dat_cal.6.10.RP.re.1$obs,
+  type = "l", 
+  lty = 1, 
+  xlim = c(0, 1),
+  ylim = c(0, 1), 
+  lwd = 2,
+  xlab = "Predicted risk from developed model",
+  ylab = "Predicted risk from refitted model",  
+  bty = "n" #no box
+)
+
+lines(dat_cal.6.10.RP.re.1$pred, 
+      dat_cal.6.10.RP.re.1$lower, 
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+lines(dat_cal.6.10.RP.re.1$pred, 
+      dat_cal.6.10.RP.re.1$upper,
+      type = "l", 
+      lty = 2, 
+      lwd = 2)
+abline(0, 1, lwd = 2, lty = 2, col = 2)
+legend("bottomright",
+        c("Ideal calibration",
+          "Calibration curve based on secondary Royston-Parmar model",
+          "95% confidence interval"),
+        col = c(2, 1, 1),
+        lty = c(2, 1, 2),
+        lwd = c(2, 2, 2),
+        bty = "n",
+        cex = 0.85)
+
+# Numerical measures
+absdiff_cph.6.10.RP.re.1 <- abs(dat_cal.6.10.RP.re.1$pred - dat_cal.6.10.RP.re.1$obs)
+
+numsum_cph.6.10.RP.re.1 <- c(
+  "ICI" = mean(absdiff_cph.6.10.RP.re.1),
+  setNames(quantile(absdiff_cph.6.10.RP.re.1, c(0.5, 0.9)), c("E50", "E90")),
+  "Emax" = max(absdiff_cph.6.10.RP.re.1)
+)
+numsum_cph.6.10.RP.re.1
+
+```
+
+
+
+
+
 ```{r Check outlier in model 7 year}
 imp3.10y%>%
   group_by(clus)%>%
