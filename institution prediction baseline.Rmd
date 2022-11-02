@@ -2212,7 +2212,7 @@ data5y.1v$g_st<-log((1/data5y.1v$pred.act)-1)
 
 val.1<-lm(g_st~lp.1,data = data5y.1v)
 
-val.1<-lm(g_st~risk.cll,data = data5y.1v)
+#val.1<-lm(g_st~risk.cll,data = data5y.1v)
 
 summary(val.1)
 
