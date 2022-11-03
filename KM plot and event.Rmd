@@ -1,0 +1,97 @@
+---
+title: "KM plot"
+output: html_document
+date: '2022-11-03'
+---
+
+```{r events}
+
+imp3.5y%>%
+  group_by(clus)%>%
+  summarise(event=sum(cens))
+
+sum(imp3.5y$cens)
+
+nrow(imp3.12y)
+
+
+imp3.10y%>%
+  group_by(clus)%>%
+  summarise(event=sum(cens))
+
+sum(imp3.10y$cens)
+
+imp3.12y%>%
+  group_by(clus)%>%
+  summarise(event=sum(cens))
+
+sum(imp3.12y$cens)
+```
+
+```{r KM plot}
+
+KM4y<-survfit(Surv(year,cens)~clus,data=imp3.5y)
+ggsurvplot(KM4y,
+           ylab="Cumulative probability of institutionalisation",
+           xlab="Time to institutionalisation",
+           legend="top",
+           surv.median.line = "hv",
+           fun="event",
+           risk.table = F,
+           ggtheme = theme_bw(),
+           legend.labs=c("CamPalGN","ICICLE","NYPUM","ParkWest","PICNICS","PINE"))
+
+KM7y<-survfit(Surv(year,cens)~clus,data=imp3.10y)
+ggsurvplot(KM7y,
+           ylab="Cumulative probability of institutionalisation",
+           xlab="Time to institutionalisation",
+           legend="top",
+           surv.median.line = "hv",
+           fun="event",
+           risk.table = F,
+           ggtheme = theme_bw(),
+           legend.labs=c("CamPalGN","NYPUM","ParkWest","PICNICS","PINE"))
+
+KM10y<-survfit(Surv(year,cens)~clus,data=imp3.12y)
+ggsurvplot(KM10y,
+           ylab="Cumulative probability of institutionalisation",
+           xlab="Time to institutionalisation",
+           legend="top",
+           surv.median.line = "hv",
+           fun="event",
+           risk.table = F,
+           ggtheme = theme_bw(),
+           legend.labs=c("CamPalGN","NYPUM","PICNICS","PINE"))
+
+```
+
+```{r plot predict risk}
+
+#plot observed vs predicted in quartiles according to predicted risk (e.g. <15%, 15-50%,50-85%, >85%) for each study
+
+#But I cannot get the observed right?
+
+
+#----PICNICS-----
+
+data12y.5v$rick.group<-cut(data12y.5v$risk,breaks = quantile(data12y.5v$risk, probs = c(0,0.15,0.5,0.85,1)),labels = c("<15%","15%-50%","50%-85%",">85%"))
+
+KM12y.5v<-survfit(Surv(year,cens)~data12y.5v$rick.group,data=data12y.5v)
+
+ggsurvplot(KM12y.5v,
+           ylab="Cumulative probability of institutionalisation",
+           xlab="Time to institutionalisation",
+           legend="top",
+           surv.median.line = "hv",
+           fun="event",
+           risk.table = F,
+           ggtheme = theme_bw(),
+           legend.labs=c("<15%","15%-50%","50%-85%",">85%"))
+
+
+
+
+
+
+
+```
