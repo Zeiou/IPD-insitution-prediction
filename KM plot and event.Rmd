@@ -137,6 +137,33 @@ risk.1.85.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group==">85%",]$a
 risk.1.50.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group=="50%-85%",]$hybl,na=T))
 risk.1.40.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group=="<50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group=="<50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group=="<50%",]$hybl,na=T))
 
+
+#----10 years 4 group-----
+data12y.1v$rick.group<-cut(data12y.1v$risk,breaks = quantile(data12y.1v$risk, probs = c(0,0.15,0.5,0.85,1)),labels = c("<15%","15%-50%","50%-85%",">85%"))
+KM12y.1v<-survfit(Surv(year,cens)~data12y.1v$rick.group,data=data12y.1v)
+
+plot(KM12y.1v,col=c("red","orange","darkblue","darkgreen"),lty = c(1,6,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
+lines(model1.12,newdata=risk.1.85.10,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
+lines(model1.12,newdata=risk.1.50.10,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
+lines(model1.12,newdata=risk.1.45.10,type = "survival",ci=FALSE,col=("orange"),lty=6)
+lines(model1.12,newdata=risk.1.15.10,type = "survival",ci=FALSE,col=("red"),lty=1)
+legend("bottomleft",
+        c("risk <15%",
+          "risk 15-50%",
+          "risk 50-85%",
+          "risk >85%"),
+        lty = c(1,6,2,5),
+        col = c("red","orange","darkblue","darkgreen"),
+        cex = 0.85)
+
+#mean survival cruve in each group 
+risk.1.85.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group==">85%",]$hybl,na=T))
+risk.1.50.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group=="50%-85%",]$hybl,na=T))
+risk.1.45.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group=="15%-50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group=="15%-50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group=="15%-50%",]$hybl,na=T))
+risk.1.15.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group=="<15%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group=="<15%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group=="<15%",]$hybl,na=T))
+
+
+
 ```
 
 
@@ -237,6 +264,31 @@ legend("bottomleft",
 risk.3.85.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group==">85%",]$hybl,na=T))
 risk.3.50.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group=="50%-85%",]$hybl,na=T))
 risk.3.40.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group=="<50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group=="<50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group=="<50%",]$hybl,na=T))
+
+
+#----10 years 4 group-----
+data12y.3v$rick.group<-cut(data12y.3v$risk,breaks = quantile(data12y.3v$risk, probs = c(0,0.15,0.5,0.85,1)),labels = c("<15%","15%-50%","50%-85%",">85%"))
+KM12y.3v<-survfit(Surv(year,cens)~data12y.3v$rick.group,data=data12y.3v)
+
+plot(KM12y.3v,col=c("red","orange","darkblue","darkgreen"),lty = c(1,6,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
+lines(model3.12,newdata=risk.3.85.10,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
+lines(model3.12,newdata=risk.3.50.10,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
+lines(model3.12,newdata=risk.3.45.10,type = "survival",ci=FALSE,col=("orange"),lty=6)
+lines(model3.12,newdata=risk.3.15.10,type = "survival",ci=FALSE,col=("red"),lty=1)
+legend("bottomleft",
+        c("risk <15%",
+          "risk 15-50%",
+          "risk 50-85%",
+          "risk >85%"),
+        lty = c(1,6,2,5),
+        col = c("red","orange","darkblue","darkgreen"),
+        cex = 0.85)
+
+#mean survival cruve in each group 
+risk.3.85.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group==">85%",]$hybl,na=T))
+risk.3.50.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group=="50%-85%",]$hybl,na=T))
+risk.3.45.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group=="15%-50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group=="15%-50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group=="15%-50%",]$hybl,na=T))
+risk.3.15.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group=="<15%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group=="<15%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group=="<15%",]$hybl,na=T))
 ```
 
 ```{r plot predict risk ParkWest}
@@ -358,6 +410,30 @@ risk.5.85.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group==">85%",]$a
 risk.5.50.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.5v[data12y.5v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.5v[data12y.5v$rick.group=="50%-85%",]$hybl,na=T))
 risk.5.40.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group=="<50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.5v[data12y.5v$rick.group=="<50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.5v[data12y.5v$rick.group=="<50%",]$hybl,na=T))
 
+
+#----10 years 4 group-----
+data12y.5v$rick.group<-cut(data12y.5v$risk,breaks = quantile(data12y.5v$risk, probs = c(0,0.15,0.5,0.85,1)),labels = c("<15%","15%-50%","50%-85%",">85%"))
+KM12y.5v<-survfit(Surv(year,cens)~data12y.5v$rick.group,data=data12y.5v)
+
+plot(KM12y.5v,col=c("red","orange","darkblue","darkgreen"),lty = c(1,6,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
+lines(model5.12,newdata=risk.5.85.10,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
+lines(model5.12,newdata=risk.5.50.10,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
+lines(model5.12,newdata=risk.5.45.10,type = "survival",ci=FALSE,col=("orange"),lty=6)
+lines(model5.12,newdata=risk.5.15.10,type = "survival",ci=FALSE,col=("red"),lty=1)
+legend("bottomleft",
+        c("risk <15%",
+          "risk 15-50%",
+          "risk 50-85%",
+          "risk >85%"),
+        lty = c(1,6,2,5),
+        col = c("red","orange","darkblue","darkgreen"),
+        cex = 0.85)
+
+#mean survival cruve in each group 
+risk.5.85.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.5v[data12y.5v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.5v[data12y.5v$rick.group==">85%",]$hybl,na=T))
+risk.5.50.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.5v[data12y.5v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.5v[data12y.5v$rick.group=="50%-85%",]$hybl,na=T))
+risk.5.45.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group=="15%-50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.5v[data12y.5v$rick.group=="15%-50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.5v[data12y.5v$rick.group=="15%-50%",]$hybl,na=T))
+risk.5.15.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group=="<15%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.5v[data12y.5v$rick.group=="<15%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.5v[data12y.5v$rick.group=="<15%",]$hybl,na=T))
 ```
 
 ```{r plot predict risk PINE}
@@ -428,5 +504,32 @@ legend("bottomleft",
 risk.6.85.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.6v[data12y.6v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.6v[data12y.6v$rick.group==">85%",]$hybl,na=T))
 risk.6.50.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.6v[data12y.6v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.6v[data12y.6v$rick.group=="50%-85%",]$hybl,na=T))
 risk.6.40.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group=="<50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.6v[data12y.6v$rick.group=="<50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.6v[data12y.6v$rick.group=="<50%",]$hybl,na=T))
+
+
+
+#----10 years 4 group-----
+data12y.6v$rick.group<-cut(data12y.6v$risk,breaks = quantile(data12y.6v$risk, probs = c(0,0.15,0.5,0.85,1)),labels = c("<15%","15%-50%","50%-85%",">85%"))
+KM12y.6v<-survfit(Surv(year,cens)~data12y.6v$rick.group,data=data12y.6v)
+
+plot(KM12y.6v,col=c("red","orange","darkblue","darkgreen"),lty = c(1,6,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
+lines(model6.12,newdata=risk.6.85.10,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
+lines(model6.12,newdata=risk.6.50.10,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
+lines(model6.12,newdata=risk.6.45.10,type = "survival",ci=FALSE,col=("orange"),lty=6)
+lines(model6.12,newdata=risk.6.15.10,type = "survival",ci=FALSE,col=("red"),lty=1)
+legend("bottomleft",
+        c("risk <15%",
+          "risk 15-50%",
+          "risk 50-85%",
+          "risk >85%"),
+        lty = c(1,6,2,5),
+        col = c("red","orange","darkblue","darkgreen"),
+        cex = 0.85)
+
+#mean survival cruve in each group 
+risk.6.85.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.6v[data12y.6v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.6v[data12y.6v$rick.group==">85%",]$hybl,na=T))
+risk.6.50.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.6v[data12y.6v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.6v[data12y.6v$rick.group=="50%-85%",]$hybl,na=T))
+risk.6.45.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group=="15%-50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.6v[data12y.6v$rick.group=="15%-50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.6v[data12y.6v$rick.group=="15%-50%",]$hybl,na=T))
+risk.6.15.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group=="<15%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.6v[data12y.6v$rick.group=="<15%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.6v[data12y.6v$rick.group=="<15%",]$hybl,na=T))
+
 
 ```
