@@ -9,25 +9,33 @@ date: '2022-10-13'
 imp3.new10<-imp3.new%>%
   filter(clus!="ICICLE")
 
-imp3.new10%>%
-  filter(cens==1)%>%  #cens==1 event
-  summarise(max(year),min(year))
-  
-PO0.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new10,k=0,scale = "odds") #log-logistic model
+```
 
-PO1.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new10,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+```{r censor for 7 years}
 
-PO2.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new10,k=2,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
-
-PH0.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new10,k=0,scale = "hazard")
-
-PH1.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new10,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "hazard")
-
-PH2.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new10,k=2,bknots = c(log(0.1067762),log(9.943874)),scale = "hazard")
+imp3.temp10<-survSplit(Surv(year, cens) ~ ., data = imp3.new10, cut = 7,
+                  episode="timegroup")
+imp3.10y<-subset(imp3.temp10, timegroup == 1) #only the first 7 year
 ```
 
 
 ```{r POPH compare 7 years}
+
+imp3.10y%>%
+  filter(cens==1)%>%  #cens==1 event
+  summarise(max(year),min(year),median(year))
+
+PO0.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.10y,k=0,scale = "odds") #log-logistic model
+
+PO1.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.10y,k=1,bknots = c(log(0.1067762),log(6.976044)),scale = "odds")
+
+PO2.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.10y,k=2,bknots = c(log(0.1067762),log(6.976044)),scale = "odds")
+
+PH0.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.10y,k=0,scale = "hazard")
+
+PH1.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.10y,k=1,bknots = c(log(0.1067762),log(6.976044)),scale = "hazard")
+
+PH2.10<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.10y,k=2,bknots = c(log(0.1067762),log(6.976044)),scale = "hazard")
 
 AIC(PO0.10) 
 AIC(PO1.10) #1 knots in median
@@ -47,15 +55,10 @@ BIC(PH1.10) #1 knots in median
 BIC(PH2.10) #2 knots one in 33% one in 67%
 
 #same the final is PO1
+
+
 ```
 
-
-```{r censor for 7 years}
-
-imp3.temp10<-survSplit(Surv(year, cens) ~ ., data = imp3.new10, cut = 7,
-                  episode="timegroup")
-imp3.10y<-subset(imp3.temp10, timegroup == 1) #only the first 7 year
-```
 
 ```{r Harrell Uno 7 years}
 

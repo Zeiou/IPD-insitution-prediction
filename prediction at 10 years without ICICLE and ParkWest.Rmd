@@ -4,14 +4,22 @@ author: "Yan Li"
 date: '2022-11-02'
 output: html_document
 ---
-```{r exclude ICICLE ParkWest}
 
+```{r censor for 10 years}
 imp3.new12<-imp3.new%>%
   filter(clus=="CamPalGN" |clus=="NYPUM"|clus=="PICNICS"|clus=="PINE" )
 
-imp3.new12%>%
+imp3.temp12<-survSplit(Surv(year, cens) ~ ., data = imp3.new12, cut = 10,
+                  episode="timegroup")
+imp3.12y<-subset(imp3.temp12, timegroup == 1) #only the first 10 year
+```
+
+
+```{r exclude ICICLE ParkWest}
+
+imp3.12y%>%
   filter(cens==1)%>%  #cens==1 event
-  summarise(max(year),min(year))
+  summarise(max(year),min(year),median(year))
   
 PO0.12<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new12,k=0,scale = "odds") #log-logistic model
 
@@ -47,15 +55,10 @@ BIC(PH1.12) #1 knots in median
 BIC(PH2.12) #2 knots one in 33% one in 67%
 
 #same the final is PO1
+
+PO1.12
 ```
 
-
-```{r censor for 10 years}
-
-imp3.temp12<-survSplit(Surv(year, cens) ~ ., data = imp3.new12, cut = 10,
-                  episode="timegroup")
-imp3.12y<-subset(imp3.temp12, timegroup == 1) #only the first 10 year
-```
 
 ```{r Harrell Uno 7 years}
 

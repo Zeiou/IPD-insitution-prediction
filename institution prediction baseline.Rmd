@@ -334,12 +334,12 @@ mispattern<-data.rename %>%
 
 
 
-png("missingp1.png",width = 7000,height =4000,res = 400)
+#png("missingp1.png",width = 7000,height =4000,res = 400)
 
-data.rename %>% 
-  missing_pattern(explanatory)
+#data.rename %>% 
+#  missing_pattern(explanatory)
 
-dev.off()
+#dev.off()
 
 ```
 
@@ -473,35 +473,51 @@ imp3.new$mmsebltotal[imp3.new$mmsebltotal>30&!is.na(imp3.new$mmsebltotal)]<-30
 
 ```
 
+```{r censor for 4 years}
+
+imp3.temp<-survSplit(Surv(year, cens) ~ ., data = imp3.new, cut = 4,
+                  episode="timegroup")
+imp3.5y<-subset(imp3.temp, timegroup == 1) #only the first 4 year
+```
 
 ```{r knots}
 
-data5%>%
+imp3.5y%>%
   filter(cens==1)%>%  #cens==1 event
-  summarise(max(year),min(year))
+  summarise(max(year),min(year),median(year))
   
 #maximum event time 9.943874 year
 #minimum event time 0.1067762	year
 
-log(9.943874)  #Kmax
+log(3.978097)  #Kmax
 log(0.1067762) #Kmin
+log(2.818617)
 ```
 
 ```{r PO model}
 
-PO0<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,k=0,scale = "odds") #log-logistic model
+PO0<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.5y,k=0,scale = "odds") #log-logistic model
 
-PO1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+PO1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.5y,k=1,bknots = c(log(0.1067762),log(3.978097)),scale = "odds")
 
-PO2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,k=2,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+PO2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.5y,k=2,bknots = c(log(0.1067762),log(3.978097)),scale = "odds")
 ```
 
 ```{r PH model}
-PH0<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,k=0,scale="hazard")
+PH0<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.5y,k=0,scale="hazard")
 
-PH1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "hazard")
+PH1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.5y,k=1,bknots = c(log(0.1067762),log(3.978097)),scale = "hazard")
 
-PH2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.new,k=2,bknots = c(log(0.1067762),log(9.943874)),scale = "hazard")
+#PH2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.5y,k=2,bknots = c(log(0.1067762),log(3.978097)),scale = "hazard")
+```
+
+```{r Probit model}
+
+#Pr0<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.5y,k=0,scale = "normal") #log-normal model
+
+#Pr1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.5y,k=1,bknots = c(log(0.1067762),log(3.978097)),scale = "normal")
+
+#Pr2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.5y,k=2,bknots = c(log(0.1067762),log(3.978097)),scale = "normal")
 ```
 
 ```{r POPH compare}
@@ -517,12 +533,17 @@ BIC(PO2) #2 knots one in 33% one in 67%
 
 AIC(PH0) 
 AIC(PH1) #1 knots in median
-AIC(PH2) #2 knots one in 33% one in 67%
+#AIC(PH2) #2 knots one in 33% one in 67%
 
 BIC(PH0) 
 BIC(PH1) #1 knots in median
-BIC(PH2) #2 knots one in 33% one in 67%
+#BIC(PH2) #2 knots one in 33% one in 67%
 
+#AIC(Pr0)
+#AIC(Pr2)
+
+#BIC(Pr0)
+#BIC(Pr2)
 ```
 
 
@@ -530,12 +551,6 @@ BIC(PH2) #2 knots one in 33% one in 67%
 PO1
 ```
 
-```{r censor for 4 years}
-
-imp3.temp<-survSplit(Surv(year, cens) ~ ., data = imp3.new, cut = 4,
-                  episode="timegroup")
-imp3.5y<-subset(imp3.temp, timegroup == 1) #only the first 4 year
-```
 
 ```{r Harrell Uno}
 
@@ -876,6 +891,7 @@ harrell_C_5v
 harrell_C_6v 
 
 
+
 Uno_C_1v
 Uno_C_2v
 Uno_C_3v
@@ -890,6 +906,8 @@ Uno_3v
 Uno_4v
 Uno_5v
 Uno_6v
+
+round(0.8684-1.96*0.03895,2)
 ```
 
 ```{r Mean calibration}
