@@ -431,6 +431,7 @@ dat_cal.1.12 <- cbind.data.frame(
 
 dat_cal.1.12 <- dat_cal.1.12[order(dat_cal.1.12$pred), ]
 
+#png("Cam-10y.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.1.12$pred, #x is predicted risk from the 
@@ -442,6 +443,7 @@ plot(
   lwd = 2,
   xlab = "Predicted risk from developed model",
   ylab = "Predicted risk from refitted model",  
+  main = "Validation dataset is CamPalGN",
   bty = "n" #no box
 )
 
@@ -456,7 +458,7 @@ lines(dat_cal.1.12$pred,
       lty = 2, 
       lwd = 2)
 abline(0, 1, lwd = 2, lty = 2, col = 2)
-legend("bottomright",
+legend("topleft",
         c("Ideal calibration",
           "Calibration curve based on secondary Royston-Parmar model",
           "95% confidence interval"),
@@ -464,7 +466,8 @@ legend("bottomright",
         lty = c(2, 1, 2),
         lwd = c(2, 2, 2),
         bty = "n",
-        cex = 0.85)
+        cex = 0.8)
+#dev.off()
 
 # Numerical measures
 absdiff_cph.1.12 <- abs(dat_cal.1.12$pred - dat_cal.1.12$obs)
@@ -521,6 +524,7 @@ dat_cal.3.12 <- cbind.data.frame(
 
 dat_cal.3.12 <- dat_cal.3.12[order(dat_cal.3.12$pred), ]
 
+#png("NY-10y.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.3.12$pred, #x is predicted risk from the 
@@ -532,6 +536,7 @@ plot(
   lwd = 2,
   xlab = "Predicted risk from developed model",
   ylab = "Predicted risk from refitted model",  
+  main = "Validation dataset is NYPUM",
   bty = "n" #no box
 )
 
@@ -546,7 +551,7 @@ lines(dat_cal.3.12$pred,
       lty = 2, 
       lwd = 2)
 abline(0, 1, lwd = 2, lty = 2, col = 2)
-legend("bottomright",
+legend("topleft",
         c("Ideal calibration",
           "Calibration curve based on secondary Royston-Parmar model",
           "95% confidence interval"),
@@ -554,7 +559,8 @@ legend("bottomright",
         lty = c(2, 1, 2),
         lwd = c(2, 2, 2),
         bty = "n",
-        cex = 0.85)
+        cex = 0.8)
+#dev.off()
 
 # Numerical measures
 absdiff_cph.3.12 <- abs(dat_cal.3.12$pred - dat_cal.3.12$obs)
@@ -607,6 +613,7 @@ dat_cal.5.12 <- cbind.data.frame(
 
 dat_cal.5.12 <- dat_cal.5.12[order(dat_cal.5.12$pred), ]
 
+#png("PIC-10y.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.5.12$pred, #x is predicted risk from the 
@@ -618,6 +625,7 @@ plot(
   lwd = 2,
   xlab = "Predicted risk from developed model",
   ylab = "Predicted risk from refitted model",  
+  main = "Validation dataset is PICNICS",
   bty = "n" #no box
 )
 
@@ -632,7 +640,7 @@ lines(dat_cal.5.12$pred,
       lty = 2, 
       lwd = 2)
 abline(0, 1, lwd = 2, lty = 2, col = 2)
-legend("bottomright",
+legend("topleft",
         c("Ideal calibration",
           "Calibration curve based on secondary Royston-Parmar model",
           "95% confidence interval"),
@@ -640,7 +648,8 @@ legend("bottomright",
         lty = c(2, 1, 2),
         lwd = c(2, 2, 2),
         bty = "n",
-        cex = 0.85)
+        cex = 0.75)
+#dev.off()
 
 # Numerical measures
 absdiff_cph.5.12 <- abs(dat_cal.5.12$pred - dat_cal.5.12$obs)
@@ -693,6 +702,7 @@ dat_cal.6.12 <- cbind.data.frame(
 
 dat_cal.6.12 <- dat_cal.6.12[order(dat_cal.6.12$pred), ]
 
+#png("PIN-10y.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.6.12$pred, #x is predicted risk from the 
@@ -704,6 +714,7 @@ plot(
   lwd = 2,
   xlab = "Predicted risk from developed model",
   ylab = "Predicted risk from refitted model",  
+  main = "Validation dataset is PINE",
   bty = "n" #no box
 )
 
@@ -718,7 +729,7 @@ lines(dat_cal.6.12$pred,
       lty = 2, 
       lwd = 2)
 abline(0, 1, lwd = 2, lty = 2, col = 2)
-legend("bottomright",
+legend("topleft",
         c("Ideal calibration",
           "Calibration curve based on secondary Royston-Parmar model",
           "95% confidence interval"),
@@ -727,6 +738,7 @@ legend("bottomright",
         lwd = c(2, 2, 2),
         bty = "n",
         cex = 0.85)
+#dev.off()
 
 # Numerical measures
 absdiff_cph.6.12 <- abs(dat_cal.6.12$pred - dat_cal.6.12$obs)
@@ -865,6 +877,7 @@ dat_cal.1.12.RP.re <- cbind.data.frame(
 
 dat_cal.1.12.RP.re <- dat_cal.1.12.RP.re[order(dat_cal.1.12.RP.re$pred), ]
 
+#png("Cam-10y-re1.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.1.12.RP.re$pred, #x is predicted risk from the 
@@ -876,6 +889,7 @@ plot(
   lwd = 2,
   xlab = "Predicted risk from developed model",
   ylab = "Predicted risk from refitted model",  
+  main = "Validation dataset is CamPalGN",
   bty = "n" #no box
 )
 
@@ -890,7 +904,7 @@ lines(dat_cal.1.12.RP.re$pred,
       lty = 2, 
       lwd = 2)
 abline(0, 1, lwd = 2, lty = 2, col = 2)
-legend("bottomright",
+legend("topleft",
         c("Ideal calibration",
           "Calibration curve based on secondary Royston-Parmar model",
           "95% confidence interval"),
@@ -898,7 +912,8 @@ legend("bottomright",
         lty = c(2, 1, 2),
         lwd = c(2, 2, 2),
         bty = "n",
-        cex = 0.85)
+        cex = 0.8)
+#dev.off()
 
 # Numerical measures
 absdiff_cph.1.12.RP.re <- abs(dat_cal.1.12.RP.re$pred - dat_cal.1.12.RP.re$obs)
@@ -952,6 +967,7 @@ dat_cal.3.12.RP.re <- cbind.data.frame(
 
 dat_cal.3.12.RP.re <- dat_cal.3.12.RP.re[order(dat_cal.3.12.RP.re$pred), ]
 
+#png("NY-10y-re1.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.3.12.RP.re$pred, #x is predicted risk from the 
@@ -963,6 +979,7 @@ plot(
   lwd = 2,
   xlab = "Predicted risk from developed model",
   ylab = "Predicted risk from refitted model",  
+  main = "Validation study is NYPUM",
   bty = "n" #no box
 )
 
@@ -977,7 +994,7 @@ lines(dat_cal.3.12.RP.re$pred,
       lty = 2, 
       lwd = 2)
 abline(0, 1, lwd = 2, lty = 2, col = 2)
-legend("bottomright",
+legend("topleft",
         c("Ideal calibration",
           "Calibration curve based on secondary Royston-Parmar model",
           "95% confidence interval"),
@@ -985,7 +1002,8 @@ legend("bottomright",
         lty = c(2, 1, 2),
         lwd = c(2, 2, 2),
         bty = "n",
-        cex = 0.85)
+        cex = 0.8)
+#dev.off()
 
 # Numerical measures
 absdiff_cph.3.12.RP.re <- abs(dat_cal.3.12.RP.re$pred - dat_cal.3.12.RP.re$obs)
@@ -1039,6 +1057,7 @@ dat_cal.5.12.RP.re <- cbind.data.frame(
 
 dat_cal.5.12.RP.re <- dat_cal.5.12.RP.re[order(dat_cal.5.12.RP.re$pred), ]
 
+#png("PIC-10y-re1.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.5.12.RP.re$pred, #x is predicted risk from the 
@@ -1050,6 +1069,7 @@ plot(
   lwd = 2,
   xlab = "Predicted risk from developed model",
   ylab = "Predicted risk from refitted model",  
+  main = "Validation dataset is PICNICS",
   bty = "n" #no box
 )
 
@@ -1064,7 +1084,7 @@ lines(dat_cal.5.12.RP.re$pred,
       lty = 2, 
       lwd = 2)
 abline(0, 1, lwd = 2, lty = 2, col = 2)
-legend("bottomright",
+legend(0,1,
         c("Ideal calibration",
           "Calibration curve based on secondary Royston-Parmar model",
           "95% confidence interval"),
@@ -1072,7 +1092,8 @@ legend("bottomright",
         lty = c(2, 1, 2),
         lwd = c(2, 2, 2),
         bty = "n",
-        cex = 0.85)
+        cex = 0.75)
+#dev.off()
 
 # Numerical measures
 absdiff_cph.5.12.RP.re <- abs(dat_cal.5.12.RP.re$pred - dat_cal.5.12.RP.re$obs)
@@ -1127,6 +1148,7 @@ dat_cal.6.12.RP.re <- cbind.data.frame(
 
 dat_cal.6.12.RP.re <- dat_cal.6.12.RP.re[order(dat_cal.6.12.RP.re$pred), ]
 
+#png("PIN-10y-re1.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.6.12.RP.re$pred, #x is predicted risk from the 
@@ -1138,6 +1160,7 @@ plot(
   lwd = 2,
   xlab = "Predicted risk from developed model",
   ylab = "Predicted risk from refitted model",  
+  main = "Validation dataset is PINE",
   bty = "n" #no box
 )
 
@@ -1152,7 +1175,7 @@ lines(dat_cal.6.12.RP.re$pred,
       lty = 2, 
       lwd = 2)
 abline(0, 1, lwd = 2, lty = 2, col = 2)
-legend("bottomright",
+legend("topleft",
         c("Ideal calibration",
           "Calibration curve based on secondary Royston-Parmar model",
           "95% confidence interval"),
@@ -1160,7 +1183,8 @@ legend("bottomright",
         lty = c(2, 1, 2),
         lwd = c(2, 2, 2),
         bty = "n",
-        cex = 0.85)
+        cex = 0.8)
+#dev.off()
 
 # Numerical measures
 absdiff_cph.6.12.RP.re <- abs(dat_cal.6.12.RP.re$pred - dat_cal.6.12.RP.re$obs)

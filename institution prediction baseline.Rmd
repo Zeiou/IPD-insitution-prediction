@@ -334,12 +334,14 @@ mispattern<-data.rename %>%
 
 
 
-#png("missingp1.png",width = 7000,height =4000,res = 400)
+#png("missingp1.png",width = 1500,height =1500,res = 400)
 
 #data.rename %>% 
 #  missing_pattern(explanatory)
 
 #dev.off()
+
+
 
 ```
 
@@ -367,9 +369,9 @@ imp1 <- jomo.MCMCchain(Y = Y, X = X, clus = clus, nburn = 5000)
 
 #plot trace for each parameter value
 
-#png("Jomo1.png",width = 3500,height =2000,res = 400)
+#png("Jomo1.png",width = 3500,height =1000,res = 400)
 
-#par(mfrow=c(1,2))
+#par(mfrow=c(1,4))
 
 plot(imp1$collectbeta[1, 1, 1:5000], type = "l", ylab = expression(beta["MDS-UPDRS,0"]),
      xlab = "Iteration number" )
@@ -404,9 +406,9 @@ imp2 <- jomo.MCMCchain(Y = Y, X = X, clus = clus, beta.start = beta.start, l1cov
 
 # Check the trace again
 
-#png("Jomo2.png",width = 3500,height =2000,res = 400)
+#png("Jomo2.png",width = 3500,height =1000,res = 400)
 
-#par(mfrow=c(2,4))
+#par(mfrow=c(1,4))
 
 plot(imp2$collectbeta[1, 1, 1:5000], type = "l", ylab = expression(beta["mdsupdrspart3,0"]),
      xlab = "Iteration number" )
@@ -1255,6 +1257,7 @@ dat_cal.2.RP <- cbind.data.frame(
 
 dat_cal.2.RP <- dat_cal.2.RP[order(dat_cal.2.RP$pred), ]
 
+#png("ICICLE-4y.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.2.RP$pred, #x is predicted risk from the 
@@ -1266,6 +1269,7 @@ plot(
   lwd = 2,
   xlab = "Predicted risk from developed model",
   ylab = "Predicted risk from refitted model",  
+  main = "Validation dataset is ICICLE", 
   bty = "n" #no box
 )
 
@@ -1280,7 +1284,7 @@ lines(dat_cal.2.RP$pred,
       lty = 2, 
       lwd = 2)
 abline(0, 1, lwd = 2, lty = 2, col = 2)
-legend("bottomright",
+legend("topleft",
         c("Ideal calibration",
           "Calibration curve based on secondary Royston-Parmar model",
           "95% confidence interval"),
@@ -1288,7 +1292,8 @@ legend("bottomright",
         lty = c(2, 1, 2),
         lwd = c(2, 2, 2),
         bty = "n",
-        cex = 0.85)
+        cex = 0.8)
+#dev.off()
 
 # Numerical measures
 absdiff_cph.2.RP <- abs(dat_cal.2.RP$pred - dat_cal.2.RP$obs)
@@ -1617,6 +1622,7 @@ dat_cal.6.RP <- cbind.data.frame(
 
 dat_cal.6.RP <- dat_cal.6.RP[order(dat_cal.6.RP$pred), ]
 
+#png("PINE-4y.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.6.RP$pred, #x is predicted risk from the 
@@ -1628,6 +1634,7 @@ plot(
   lwd = 2,
   xlab = "Predicted risk from developed model",
   ylab = "Predicted risk from refitted model",  
+  main = "Validation dataset is PINE",
   bty = "n" #no box
 )
 
@@ -1642,7 +1649,7 @@ lines(dat_cal.6.RP$pred,
       lty = 2, 
       lwd = 2)
 abline(0, 1, lwd = 2, lty = 2, col = 2)
-legend("bottomright",
+legend("topleft",
         c("Ideal calibration",
           "Calibration curve based on secondary Royston-Parmar model",
           "95% confidence interval"),
@@ -1650,7 +1657,9 @@ legend("bottomright",
         lty = c(2, 1, 2),
         lwd = c(2, 2, 2),
         bty = "n",
-        cex = 0.85)
+        cex = 0.8)
+
+#dev.off()
 
 # Numerical measures
 absdiff_cph.6.RP <- abs(dat_cal.6.RP$pred - dat_cal.6.RP$obs)
@@ -2168,6 +2177,9 @@ dat_cal.6.RP.re <- cbind.data.frame(
 
 dat_cal.6.RP.re <- dat_cal.6.RP.re[order(dat_cal.6.RP.re$pred), ]
 
+
+
+#png("PINE-4yr1.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.6.RP.re$pred, #x is predicted risk from the 
@@ -2179,6 +2191,7 @@ plot(
   lwd = 2,
   xlab = "Predicted risk from developed model",
   ylab = "Predicted risk from refitted model",  
+  main = "Validation dataset is PINE study",
   bty = "n" #no box
 )
 
@@ -2193,7 +2206,7 @@ lines(dat_cal.6.RP.re$pred,
       lty = 2, 
       lwd = 2)
 abline(0, 1, lwd = 2, lty = 2, col = 2)
-legend("bottomright",
+legend("topleft",
         c("Ideal calibration",
           "Calibration curve based on secondary Royston-Parmar model",
           "95% confidence interval"),
@@ -2201,7 +2214,8 @@ legend("bottomright",
         lty = c(2, 1, 2),
         lwd = c(2, 2, 2),
         bty = "n",
-        cex = 0.85)
+        cex = 0.8)
+#dev.off()
 
 # Numerical measures
 absdiff_cph.6.RP.re <- abs(dat_cal.6.RP.re$pred - dat_cal.6.RP.re$obs)
@@ -2334,8 +2348,6 @@ calslope_summary.5
 
 
 #---leave PINE out----
-
-
 
 #model.val.6<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.6v,k=1,bknots = c(log(0.5557837),log(3.978097)),scale = "odds")
 
