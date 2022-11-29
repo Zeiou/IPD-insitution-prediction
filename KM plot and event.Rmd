@@ -87,9 +87,6 @@ ggsurvplot(KM10y,
 dev.off()
 ```
 
-
-
-
 ```{r plot predict risk CamPalGN}
 
 #---4 year----
@@ -97,6 +94,7 @@ data5y.1v$rick.group<-cut(data5y.1v$risk,breaks = quantile(data5y.1v$risk, probs
 
 KM5y.1v<-survfit(Surv(year,cens)~data5y.1v$rick.group,data=data5y.1v)
 
+#png("Cam-KM-4y.png",width = 3500,height =2000,res = 400)
 plot(KM5y.1v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),ylim = c(0.7,1),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
 lines(model1,newdata=risk.1.85,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
 lines(model1,newdata=risk.1.50,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
@@ -108,6 +106,7 @@ legend("bottomright",
         lty = c(1,2,5),
         col = c("red","darkblue","darkgreen"),
         cex = 0.85)
+#dev.off()
 
 #mean survival cruve in each group 
 risk.1.85<-data.frame(age10=mean(data5y.1v[data5y.1v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.1v[data5y.1v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.1v[data5y.1v$rick.group==">85%",]$hybl,na=T))
@@ -119,17 +118,19 @@ risk.1.40<-data.frame(age10=mean(data5y.1v[data5y.1v$rick.group=="<50%",]$age10,
 data10y.1v$rick.group<-cut(data10y.1v$risk,breaks = quantile(data10y.1v$risk, probs = c(0,0.5,0.85,1)),labels = c("<50%","50%-85%",">85%"))
 KM10y.1v<-survfit(Surv(year,cens)~data10y.1v$rick.group,data=data10y.1v)
 
-plot(KM10y.1v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
+png("Cam-KM-7y.png",width = 3500,height =2000,res = 400)
+plot(KM10y.1v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="CamPalGN")
 lines(model1.10,newdata=risk.1.85.7,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
 lines(model1.10,newdata=risk.1.50.7,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
 lines(model1.10,newdata=risk.1.40.7,type = "survival",ci=FALSE,col=("red"),lty=1)
 legend("bottomright",
-        c("risk <50%",
-          "risk 50-85%",
-          "risk >85%"),
+        c("risk up to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
         lty = c(1,2,5),
         col = c("red","darkblue","darkgreen"),
         cex = 0.85)
+dev.off()
 
 #mean survival cruve in each group 
 risk.1.85.7<-data.frame(age10=mean(data10y.1v[data10y.1v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data10y.1v[data10y.1v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data10y.1v[data10y.1v$rick.group==">85%",]$hybl,na=T))
@@ -164,19 +165,21 @@ risk.1.40.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group=="<50%",]$a
 data12y.1v$rick.group<-cut(data12y.1v$risk,breaks = quantile(data12y.1v$risk, probs = c(0,0.15,0.5,0.85,1)),labels = c("<15%","15%-50%","50%-85%",">85%"))
 KM12y.1v<-survfit(Surv(year,cens)~data12y.1v$rick.group,data=data12y.1v)
 
-plot(KM12y.1v,col=c("red","orange","darkblue","darkgreen"),lty = c(1,6,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
+png("Cam-KM-10y.png",width = 3500,height =2000,res = 400)
+plot(KM12y.1v,col=c("red","orange","darkblue","darkgreen"),lty = c(1,6,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="CamPalGN")
 lines(model1.12,newdata=risk.1.85.10,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
 lines(model1.12,newdata=risk.1.50.10,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
 lines(model1.12,newdata=risk.1.45.10,type = "survival",ci=FALSE,col=("orange"),lty=6)
 lines(model1.12,newdata=risk.1.15.10,type = "survival",ci=FALSE,col=("red"),lty=1)
 legend("bottomleft",
-        c("risk <15%",
-          "risk 15-50%",
-          "risk 50-85%",
-          "risk >85%"),
+        c("risk up to 15th centile",
+          "risk >15th to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
         lty = c(1,6,2,5),
         col = c("red","orange","darkblue","darkgreen"),
         cex = 0.85)
+dev.off()
 
 #mean survival cruve in each group 
 risk.1.85.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group==">85%",]$hybl,na=T))
@@ -188,7 +191,6 @@ risk.1.15.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group=="<15%",]$a
 
 ```
 
-
 ```{r plot predict risk ICICLE}
 
 #---4 year----
@@ -196,17 +198,19 @@ data5y.2v$rick.group<-cut(data5y.2v$risk,breaks = quantile(data5y.2v$risk, probs
 
 KM5y.2v<-survfit(Surv(year,cens)~data5y.2v$rick.group,data=data5y.2v)
 
-plot(KM5y.2v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),ylim = c(0.7,1),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
+#png("IC-KM-4y.png",width = 3500,height =2000,res = 400)
+plot(KM5y.2v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),ylim = c(0.7,1),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="ICICLE")
 lines(model2,newdata=risk.2.85,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
 lines(model2,newdata=risk.2.50,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
 lines(model2,newdata=risk.2.40,type = "survival",ci=FALSE,col=("red"),lty=1)
 legend("bottomright",
-        c("risk <50%",
-          "risk 50-85%",
-          "risk >85%"),
+        c("risk up to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
         lty = c(1,2,5),
         col = c("red","darkblue","darkgreen"),
         cex = 0.85)
+#dev.off()
 
 #mean survival cruve in each group 
 risk.2.85<-data.frame(age10=mean(data5y.2v[data5y.2v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.2v[data5y.2v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.2v[data5y.2v$rick.group==">85%",]$hybl,na=T))
@@ -246,17 +250,19 @@ data10y.3v$rick.group<-cut(data10y.3v$risk,breaks = quantile(data10y.3v$risk, pr
 
 KM10y.3v<-survfit(Surv(year,cens)~data10y.3v$rick.group,data=data10y.3v)
 
-plot(KM10y.3v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
+png("NY-KM-7y.png",width = 3500,height =2000,res = 400)
+plot(KM10y.3v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="NYPUM")
 lines(model3.10,newdata=risk.3.85.7,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
 lines(model3.10,newdata=risk.3.50.7,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
 lines(model3.10,newdata=risk.3.40.7,type = "survival",ci=FALSE,col=("red"),lty=1)
 legend("bottomright",
-        c("risk <50%",
-          "risk 50-85%",
-          "risk >85%"),
+        c("risk up to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
         lty = c(1,2,5),
         col = c("red","darkblue","darkgreen"),
         cex = 0.85)
+dev.off()
 
 #mean survival cruve in each group 
 risk.3.85.7<-data.frame(age10=mean(data10y.3v[data10y.3v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data10y.3v[data10y.3v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data10y.3v[data10y.3v$rick.group==">85%",]$hybl,na=T))
@@ -292,19 +298,21 @@ risk.3.40.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group=="<50%",]$a
 data12y.3v$rick.group<-cut(data12y.3v$risk,breaks = quantile(data12y.3v$risk, probs = c(0,0.15,0.5,0.85,1)),labels = c("<15%","15%-50%","50%-85%",">85%"))
 KM12y.3v<-survfit(Surv(year,cens)~data12y.3v$rick.group,data=data12y.3v)
 
-plot(KM12y.3v,col=c("red","orange","darkblue","darkgreen"),lty = c(1,6,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
+png("NY-KM-10y.png",width = 3500,height =2000,res = 400)
+plot(KM12y.3v,col=c("red","orange","darkblue","darkgreen"),lty = c(1,6,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="NYPUM")
 lines(model3.12,newdata=risk.3.85.10,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
 lines(model3.12,newdata=risk.3.50.10,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
 lines(model3.12,newdata=risk.3.45.10,type = "survival",ci=FALSE,col=("orange"),lty=6)
 lines(model3.12,newdata=risk.3.15.10,type = "survival",ci=FALSE,col=("red"),lty=1)
 legend("bottomleft",
-        c("risk <15%",
-          "risk 15-50%",
-          "risk 50-85%",
-          "risk >85%"),
+        c("risk up to 15th centile",
+          "risk >15th to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
         lty = c(1,6,2,5),
         col = c("red","orange","darkblue","darkgreen"),
         cex = 0.85)
+dev.off()
 
 #mean survival cruve in each group 
 risk.3.85.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group==">85%",]$hybl,na=T))
@@ -344,17 +352,19 @@ data10y.4v$rick.group<-cut(data10y.4v$risk,breaks = quantile(data10y.4v$risk, pr
 
 KM10y.4v<-survfit(Surv(year,cens)~data10y.4v$rick.group,data=data10y.4v)
 
-plot(KM10y.4v,col=c("red","darkblue","darkgreen"),ylim=c(0.3,1),lty = c(1,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
+png("PA-KM-7y.png",width = 3500,height =2000,res = 400)
+plot(KM10y.4v,col=c("red","darkblue","darkgreen"),ylim=c(0.3,1),lty = c(1,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="ParkWest")
 lines(model4.10,newdata=risk.4.85.7,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
 lines(model4.10,newdata=risk.4.50.7,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
 lines(model4.10,newdata=risk.4.40.7,type = "survival",ci=FALSE,col=("red"),lty=1)
 legend("bottomright",
-        c("risk <50%",
-          "risk 50-85%",
-          "risk >85%"),
+        c("risk up to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
         lty = c(1,2,5),
         col = c("red","darkblue","darkgreen"),
         cex = 0.85)
+dev.off()
 
 #mean survival cruve in each group 
 risk.4.85.7<-data.frame(age10=mean(data10y.4v[data10y.4v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data10y.4v[data10y.4v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data10y.4v[data10y.4v$rick.group==">85%",]$hybl,na=T))
@@ -392,17 +402,19 @@ risk.5.40<-data.frame(age10=mean(data5y.5v[data5y.5v$rick.group=="<50%",]$age10,
 data10y.5v$rick.group<-cut(data10y.5v$risk,breaks = quantile(data10y.5v$risk, probs = c(0,0.5,0.85,1)),labels = c("<50%","50%-85%",">85%"))
 KM10y.5v<-survfit(Surv(year,cens)~data10y.5v$rick.group,data=data10y.5v)
 
-plot(KM10y.5v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),ylim = c(0.4,1),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
+png("PIC-KM-7y.png",width = 3500,height =2000,res = 400)
+plot(KM10y.5v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),ylim = c(0.1,1),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="PICNICS")
 lines(model5.10,newdata=risk.5.85.7,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
 lines(model5.10,newdata=risk.5.50.7,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
 lines(model5.10,newdata=risk.5.40.7,type = "survival",ci=FALSE,col=("red"),lty=1)
 legend("bottomright",
-        c("risk <50%",
-          "risk 50-85%",
-          "risk >85%"),
+        c("risk up to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
         lty = c(1,2,5),
         col = c("red","darkblue","darkgreen"),
         cex = 0.85)
+dev.off()
 
 #mean survival cruve in each group 
 risk.5.85.7<-data.frame(age10=mean(data10y.5v[data10y.5v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data10y.5v[data10y.5v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data10y.5v[data10y.5v$rick.group==">85%",]$hybl,na=T))
@@ -437,19 +449,21 @@ risk.5.40.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group=="<50%",]$a
 data12y.5v$rick.group<-cut(data12y.5v$risk,breaks = quantile(data12y.5v$risk, probs = c(0,0.15,0.5,0.85,1)),labels = c("<15%","15%-50%","50%-85%",">85%"))
 KM12y.5v<-survfit(Surv(year,cens)~data12y.5v$rick.group,data=data12y.5v)
 
-plot(KM12y.5v,col=c("red","orange","darkblue","darkgreen"),lty = c(1,6,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
+png("PIC-KM-10y.png",width = 3500,height =2000,res = 400)
+plot(KM12y.5v,col=c("red","orange","darkblue","darkgreen"),lty = c(1,6,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="PICNICS")
 lines(model5.12,newdata=risk.5.85.10,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
 lines(model5.12,newdata=risk.5.50.10,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
 lines(model5.12,newdata=risk.5.45.10,type = "survival",ci=FALSE,col=("orange"),lty=6)
 lines(model5.12,newdata=risk.5.15.10,type = "survival",ci=FALSE,col=("red"),lty=1)
 legend("bottomleft",
-        c("risk <15%",
-          "risk 15-50%",
-          "risk 50-85%",
-          "risk >85%"),
+        c("risk up to 15th centile",
+          "risk >15th to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
         lty = c(1,6,2,5),
         col = c("red","orange","darkblue","darkgreen"),
         cex = 0.85)
+dev.off()
 
 #mean survival cruve in each group 
 risk.5.85.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.5v[data12y.5v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.5v[data12y.5v$rick.group==">85%",]$hybl,na=T))
@@ -465,17 +479,19 @@ data5y.6v$rick.group<-cut(data5y.6v$risk,breaks = quantile(data5y.6v$risk, probs
 
 KM5y.6v<-survfit(Surv(year,cens)~data5y.6v$rick.group,data=data5y.6v)
 
-plot(KM5y.6v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),ylim = c(0.7,1),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
+#png("PINE-KM-4y.png",width = 3500,height =2000,res = 400)
+plot(KM5y.6v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),ylim = c(0.7,1),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="PINE")
 lines(model6,newdata=risk.6.85,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
 lines(model6,newdata=risk.6.50,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
 lines(model6,newdata=risk.6.40,type = "survival",ci=FALSE,col=("red"),lty=1)
 legend("bottomright",
-        c("risk <50%",
-          "risk 50-85%",
-          "risk >85%"),
+        c("risk up to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
         lty = c(1,2,5),
         col = c("red","darkblue","darkgreen"),
         cex = 0.85)
+#dev.off()
 
 #mean survival cruve in each group 
 risk.6.85<-data.frame(age10=mean(data5y.6v[data5y.6v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.6v[data5y.6v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.6v[data5y.6v$rick.group==">85%",]$hybl,na=T))
@@ -487,17 +503,19 @@ risk.6.40<-data.frame(age10=mean(data5y.6v[data5y.6v$rick.group=="<50%",]$age10,
 data10y.6v$rick.group<-cut(data10y.6v$risk,breaks = quantile(data10y.6v$risk, probs = c(0,0.5,0.85,1)),labels = c("<50%","50%-85%",">85%"))
 KM10y.6v<-survfit(Surv(year,cens)~data10y.6v$rick.group,data=data10y.6v)
 
-plot(KM10y.6v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),ylim = c(0.4,1),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
+png("PIN-KM-7y.png",width = 3500,height =2000,res = 400)
+plot(KM10y.6v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),ylim = c(0,1),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="PINE")
 lines(model6.10,newdata=risk.6.85.7,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
 lines(model6.10,newdata=risk.6.50.7,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
 lines(model6.10,newdata=risk.6.40.7,type = "survival",ci=FALSE,col=("red"),lty=1)
 legend("bottomright",
-        c("risk <50%",
-          "risk 50-85%",
-          "risk >85%"),
+        c("risk up to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
         lty = c(1,2,5),
         col = c("red","darkblue","darkgreen"),
         cex = 0.85)
+dev.off()
 
 #mean survival cruve in each group 
 risk.6.85.7<-data.frame(age10=mean(data10y.6v[data10y.6v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data10y.6v[data10y.6v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data10y.6v[data10y.6v$rick.group==">85%",]$hybl,na=T))
@@ -533,19 +551,21 @@ risk.6.40.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group=="<50%",]$a
 data12y.6v$rick.group<-cut(data12y.6v$risk,breaks = quantile(data12y.6v$risk, probs = c(0,0.15,0.5,0.85,1)),labels = c("<15%","15%-50%","50%-85%",">85%"))
 KM12y.6v<-survfit(Surv(year,cens)~data12y.6v$rick.group,data=data12y.6v)
 
-plot(KM12y.6v,col=c("red","orange","darkblue","darkgreen"),lty = c(1,6,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
+png("PIN-KM-10y.png",width = 3500,height =2000,res = 400)
+plot(KM12y.6v,col=c("red","orange","darkblue","darkgreen"),lty = c(1,6,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="PINE")
 lines(model6.12,newdata=risk.6.85.10,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
 lines(model6.12,newdata=risk.6.50.10,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
 lines(model6.12,newdata=risk.6.45.10,type = "survival",ci=FALSE,col=("orange"),lty=6)
 lines(model6.12,newdata=risk.6.15.10,type = "survival",ci=FALSE,col=("red"),lty=1)
 legend("bottomleft",
-        c("risk <15%",
-          "risk 15-50%",
-          "risk 50-85%",
-          "risk >85%"),
+        c("risk up to 15th centile",
+          "risk >15th to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
         lty = c(1,6,2,5),
         col = c("red","orange","darkblue","darkgreen"),
         cex = 0.85)
+dev.off()
 
 #mean survival cruve in each group 
 risk.6.85.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.6v[data12y.6v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.6v[data12y.6v$rick.group==">85%",]$hybl,na=T))
@@ -555,3 +575,4 @@ risk.6.15.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group=="<15%",]$a
 
 
 ```
+
