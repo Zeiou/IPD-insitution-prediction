@@ -35,6 +35,8 @@ library(flexsurv)
 library(pacman)
 ```
 
+
+
 ```{r data}
 data<-read_dta("PICC institutionalisation.dta")
 
@@ -498,19 +500,19 @@ log(2.818617)
 
 ```{r PO model}
 
-PO0<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.5y,k=0,scale = "odds") #log-logistic model
+PO0<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+mmsebltotal+clus,data=imp3.5y,k=0,scale = "odds") #log-logistic model
 
-PO1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.5y,k=1,bknots = c(log(0.1067762),log(3.978097)),scale = "odds")
+PO1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+mmsebltotal+clus,data=imp3.5y,k=1,bknots = c(log(0.1067762),log(3.978097)),scale = "odds")
 
-PO2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.5y,k=2,bknots = c(log(0.1067762),log(3.978097)),scale = "odds")
+PO2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+mmsebltotal+clus,data=imp3.5y,k=2,bknots = c(log(0.1067762),log(3.978097)),scale = "odds")
 ```
 
 ```{r PH model}
-PH0<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.5y,k=0,scale="hazard")
+PH0<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+mmsebltotal+clus,data=imp3.5y,k=0,scale="hazard")
 
-PH1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.5y,k=1,bknots = c(log(0.1067762),log(3.978097)),scale = "hazard")
+PH1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+mmsebltotal+clus,data=imp3.5y,k=1,bknots = c(log(0.1067762),log(3.978097)),scale = "hazard")
 
-#PH2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal+clus,data=imp3.5y,k=2,bknots = c(log(0.1067762),log(3.978097)),scale = "hazard")
+PH2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+mmsebltotal+clus,data=imp3.5y,k=2,bknots = c(log(0.1067762),log(3.978097)),scale = "hazard")
 ```
 
 ```{r Probit model}
@@ -535,11 +537,11 @@ BIC(PO2) #2 knots one in 33% one in 67%
 
 AIC(PH0) 
 AIC(PH1) #1 knots in median
-#AIC(PH2) #2 knots one in 33% one in 67%
+AIC(PH2) #2 knots one in 33% one in 67%
 
 BIC(PH0) 
 BIC(PH1) #1 knots in median
-#BIC(PH2) #2 knots one in 33% one in 67%
+BIC(PH2) #2 knots one in 33% one in 67%
 
 #AIC(Pr0)
 #AIC(Pr2)
@@ -571,12 +573,12 @@ data5y.1%>%
 
 
 #refit model
-model1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.1,k=1,bknots = c(log(0.1067762),log(3.978097)),scale = "odds")
+model1<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+mmsebltotal,data=data5y.1,k=1,bknots = c(log(0.1067762),log(3.978097)),scale = "odds")
 
 
 #linear predictor method 1
 # Design matrix of predictors
-des_matr1<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+hybl,data=data5y.1v))
+des_matr1<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+mmsebltotal,data=data5y.1v))
 des_matr1$`(Intercept)` <- NULL
 coef1<-c(model1$coefficients[4],model1$coefficients[5],model1$coefficients[6],model1$coefficients[7])
 data5y.1v$lp.1 <- as.vector(as.matrix(des_matr1) %*% cbind(coef1))
@@ -624,14 +626,14 @@ data5y.2%>%
 
 
 #refit model
-model2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.2,k=1,bknots = c(log(0.1067762),log(3.978097)),scale = "odds")
+model2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+mmsebltotal,data=data5y.2,k=1,bknots = c(log(0.1067762),log(3.978097)),scale = "odds")
 
 #survival probabilities
 s5.2<-predict(model2,type = "survival",times = 4) #survival probabilities at 4 year
 
 # Design matrix of predictors
 #add linear predictor in validation datasets
-des_matr2<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+hybl,data=data5y.2v))
+des_matr2<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+mmsebltotal,data=data5y.2v))
 des_matr2$`(Intercept)` <- NULL
 coef2<-c(model2$coefficients[4],model2$coefficients[5],model2$coefficients[6],model2$coefficients[7])
 data5y.2v$lp.2 <- as.vector(as.matrix(des_matr2) %*% cbind(coef2))
@@ -661,14 +663,14 @@ data5y.3%>%
   summarise(max(year),min(year))  
 
 #refit model
-model3<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.3,k=1,bknots = c(log(0.1067762),log(3.978097)),scale = "odds")
+model3<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+mmsebltotal,data=data5y.3,k=1,bknots = c(log(0.1067762),log(3.978097)),scale = "odds")
 
 #survival probabilities
 s5.3<-predict(model3,type = "survival",times = 4) #survival probabilities at 4 year
 
 # Design matrix of predictors
 #add linear predictor in validation datasets
-des_matr3<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+hybl,data=data5y.3v))
+des_matr3<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+mmsebltotal,data=data5y.3v))
 des_matr3$`(Intercept)` <- NULL
 coef3<-c(model3$coefficients[4],model3$coefficients[5],model3$coefficients[6],model3$coefficients[7])
 data5y.3v$lp.3 <- as.vector(as.matrix(des_matr3) %*% cbind(coef3))
@@ -698,13 +700,13 @@ data5y.4%>%
   summarise(max(year),min(year))  
 
 #refit model
-model4<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.4,k=1,bknots = c(log(0.1067762),log(3.978097)),scale = "odds")
+model4<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+mmsebltotal,data=data5y.4,k=1,bknots = c(log(0.1067762),log(3.978097)),scale = "odds")
 
 #survival probabilities
 s5.4<-predict(model4,type = "survival",times = 4) #survival probabilities at 4 year
 
 #add linear predictor in validation datasets
-des_matr4<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+hybl,data=data5y.4v))
+des_matr4<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+mmsebltotal,data=data5y.4v))
 des_matr4$`(Intercept)` <- NULL
 coef4<-c(model4$coefficients[4],model4$coefficients[5],model4$coefficients[6],model4$coefficients[7])
 data5y.4v$lp.4 <- as.vector(as.matrix(des_matr4) %*% cbind(coef4))
@@ -734,13 +736,13 @@ data5y.5%>%
   summarise(max(year),min(year))  
 
 #refit model
-model5<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.5,k=1,bknots = c(log(0.5557837),log(3.978097)),scale = "odds")
+model5<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+mmsebltotal,data=data5y.5,k=1,bknots = c(log(0.5557837),log(3.978097)),scale = "odds")
 
 #survival probabilities
 s5.5<-predict(model5,type = "survival",times = 4) #survival probabilities at 4 year
 
 #linear predictor
-des_matr5<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+hybl,data=data5y.5v))
+des_matr5<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+mmsebltotal,data=data5y.5v))
 des_matr5$`(Intercept)` <- NULL
 coef5<-c(model5$coefficients[4],model5$coefficients[5],model5$coefficients[6],model5$coefficients[7])
 data5y.5v$lp.5<- as.vector(as.matrix(des_matr5) %*% cbind(coef5))
@@ -770,13 +772,13 @@ data5y.6%>%
   summarise(max(year),min(year))  
 
 #refit model
-model6<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.6,k=1,bknots = c(log(0.1067762),log(3.8987)),scale = "odds")
+model6<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+mmsebltotal,data=data5y.6,k=1,bknots = c(log(0.1067762),log(3.8987)),scale = "odds")
 
 #survival probabilities
 s5.6<-predict(model6,type = "survival",times = 4) #survival probabilities at 4 year
 
 #linear predictor
-des_matr6<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+hybl,data=data5y.6v))
+des_matr6<-as.data.frame(model.matrix(~ age10+sex+mdsupdrs3.10+mmsebltotal,data=data5y.6v))
 des_matr6$`(Intercept)` <- NULL
 coef6<-c(model6$coefficients[4],model6$coefficients[5],model6$coefficients[6],model6$coefficients[7])
 data5y.6v$lp.6<- as.vector(as.matrix(des_matr6) %*% cbind(coef6))
@@ -909,7 +911,7 @@ Uno_4v
 Uno_5v
 Uno_6v
 
-round(0.8684-1.96*0.03895,2)
+round(71.16+1.96*5.58,2)
 ```
 
 ```{r Mean calibration}
@@ -1226,9 +1228,9 @@ data5y.2v%>%
 
 # Estimate actual risk
 
-#vcal.2.RP <- flexsurvspline(Surv(year, cens) ~ risk.cll, data = data5y.2v, k=1,bknots = c(log(1.601643),log(3.827515)),scale = "odds")
+vcal.2.RP <- flexsurvspline(Surv(year, cens) ~ risk.cll, data = data5y.2v, k=1,bknots = c(log(1.601643),log(3.827515)),scale = "odds")
 
-vcal.2.RP <- flexsurvspline(Surv(year, cens) ~ rcs(risk.cll,3), data = data5y.2v, k=1,bknots = c(log(1.601643),log(3.827515)),scale = "odds")
+#vcal.2.RP <- flexsurvspline(Surv(year, cens) ~ rcs(risk.cll,3), data = data5y.2v, k=1,bknots = c(log(1.601643),log(3.827515)),scale = "odds")
 
 
 #survest function is to estimate survival probabilities
@@ -1501,9 +1503,9 @@ data5y.5v%>%
   filter(cens==1)%>%  #cens==1 event
   summarise(max(year),min(year)) 
 
-vcal.5.RP <- flexsurvspline(Surv(year, cens) ~ risk.cll, data = data5y.5v, k=1,bknots = c(log(0.1067762),log(3.8987)),scale = "odds")
+#vcal.5.RP <- flexsurvspline(Surv(year, cens) ~ risk.cll, data = data5y.5v, k=1,bknots = c(log(0.1067762),log(3.8987)),scale = "odds")
 
-#vcal.5.RP <- flexsurvspline(Surv(year, cens) ~ rcs(risk.cll,3), data = data5y.5v, k=1,bknots = c(log(0.1067762),log(3.8987)),scale = "odds")
+vcal.5.RP <- flexsurvspline(Surv(year, cens) ~ rcs(risk.cll,3), data = data5y.5v, k=1,bknots = c(log(0.1067762),log(3.8987)),scale = "odds")
 
 #survest function is to estimate survival probabilities
 
@@ -1531,6 +1533,7 @@ dat_cal.5.RP <- cbind.data.frame(
 
 dat_cal.5.RP <- dat_cal.5.RP[order(dat_cal.5.RP$pred), ]
 
+#png("PICNICS-4y.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.5.RP$pred, #x is predicted risk from the 
@@ -1542,6 +1545,7 @@ plot(
   lwd = 2,
   xlab = "Predicted risk from developed model",
   ylab = "Predicted risk from refitted model",  
+  main = "Validation dataset is PICNICS",
   bty = "n" #no box
 )
 
@@ -1564,7 +1568,8 @@ legend("bottomright",
         lty = c(2, 1, 2),
         lwd = c(2, 2, 2),
         bty = "n",
-        cex = 0.85)
+        cex = 0.8)
+#dev.off()
 
 # Numerical measures
 absdiff_cph.5.RP <- abs(dat_cal.5.RP$pred - dat_cal.5.RP$obs)
@@ -1827,6 +1832,7 @@ dat_cal.2.RP.re <- cbind.data.frame(
 
 dat_cal.2.RP.re <- dat_cal.2.RP.re[order(dat_cal.2.RP.re$pred), ]
 
+#png("ICICLE-4y-re1.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.2.RP.re$pred, #x is predicted risk from the 
@@ -1836,8 +1842,9 @@ plot(
   xlim = c(0, 1),
   ylim = c(0, 1), 
   lwd = 2,
-  xlab = "Predicted risk from developed model",
-  ylab = "Predicted risk from refitted model",  
+  xlab = "Predicted risk from development model with new boundary knots position and intercept",
+  ylab = "Predicted risk from refitted model", 
+  main = "Validation dataset is ICICLE",
   bty = "n" #no box
 )
 
@@ -1861,6 +1868,7 @@ legend("bottomright",
         lwd = c(2, 2, 2),
         bty = "n",
         cex = 0.85)
+#dev.off()
 
 # Numerical measures
 absdiff_cph.2.RP.re <- abs(dat_cal.2.RP.re$pred - dat_cal.2.RP.re$obs)
@@ -2050,7 +2058,13 @@ numsum_cph.4.RP.re
 
 #----PICNICS-----
 
-model5.re<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.5,k=1,bknots = c(log(0.1067762),log(3.8987)),scale = "odds")  #change the knots position
+model5.re<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+mmsebltotal,data=data5y.5,k=1,bknots = c(log(0.1067762),log(3.8987)),scale = "odds")  #change the knots position
+
+#The boundary knot position is based on the validation dataset, but the internal knot is based on the development data set.
+
+model5.re$knots #check the knot postition
+
+#The coefficients is the same as the development model so should be obtained by model5 not model5.re
 
 rcs.mod5<-as.data.frame(basis(model5.re$knots,log(4))) #basis spline
 data5y.5v$rcs1<-rcs.mod5[,2]
@@ -2060,7 +2074,7 @@ log((1-obj.5$surv)/mean(1-data5y.5v$pred)) #ln mean O/E risk ratio
 
 model5.re$res[c("gamma0", "gamma1", "gamma2"), "est"]
 
-data5y.5v$pred.re<-1/(1+exp(-14.41045090-0.290433+2.04247425*data5y.5v$rcs1-0.03653448*data5y.5v$rcs2+data5y.5v$lp.5)) #change the knots position and s(lnt;r) but keep the linear predictor the same
+data5y.5v$pred.re<-1/(1+exp(-9.29836083-0.2930496+2.03774141*data5y.5v$rcs1-0.03969151*data5y.5v$rcs2+data5y.5v$lp.5)) #change the knots position and s(lnt;r) but keep the linear predictor the same
 
 (1-obj.5$surv)/mean(1-data5y.5v$pred.re) #Mean calibration improve
 #(1-obj.5$surv)/mean(1-data5y.5v$pred) improve 0.75 to 0.95
@@ -2091,6 +2105,8 @@ dat_cal.5.RP.re <- cbind.data.frame(
 
 dat_cal.5.RP.re <- dat_cal.5.RP.re[order(dat_cal.5.RP.re$pred), ]
 
+
+png("PIC-4yr-re1.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.5.RP.re$pred, #x is predicted risk from the 
@@ -2100,8 +2116,9 @@ plot(
   xlim = c(0, 1),
   ylim = c(0, 1), 
   lwd = 2,
-  xlab = "Predicted risk from developed model",
+  xlab = "Predicted risk from developed model with new boundary knots position and intercept",
   ylab = "Predicted risk from refitted model",  
+  main = "Validation dataset is PICNICS",
   bty = "n" #no box
 )
 
@@ -2125,6 +2142,7 @@ legend("bottomright",
         lwd = c(2, 2, 2),
         bty = "n",
         cex = 0.85)
+dev.off()
 
 # Numerical measures
 absdiff_cph.5.RP.re <- abs(dat_cal.5.RP.re$pred - dat_cal.5.RP.re$obs)
@@ -2138,7 +2156,7 @@ numsum_cph.5.RP.re
 
 #------PINE------
 
-model6.re<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.6,k=1,bknots = c(log(0.5557837),log(3.978097)),scale = "odds") # change the knots position
+model6.re<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+mmsebltotal,data=data5y.6,k=1,bknots = c(log(0.5557837),log(3.978097)),scale = "odds") # change the knots position
 
 rcs.mod6<-as.data.frame(basis(model6.re$knots,log(4))) #basis spline
 data5y.6v$rcs1<-rcs.mod6[,2]
@@ -2147,7 +2165,7 @@ data5y.6v$rcs2<-rcs.mod6[,3]
 model6.re$res[c("gamma0", "gamma1", "gamma2"), "est"]
 log((1-obj.6$surv)/mean(1-data5y.6v$pred))
 
-data5y.6v$pred.re<-1/(1+exp(-21.016487+0.3555012+1.127613*log(4)-1.261545*data5y.6v$rcs2+data5y.6v$lp.6))
+data5y.6v$pred.re<-1/(1+exp(-21.10189+0.4388156+1.13516*log(4)-1.24703*data5y.6v$rcs2+data5y.6v$lp.6))
 
 (1-obj.6$surv)/mean(1-data5y.6v$pred.re) #Mean calibration improve
 #(1-obj.6$surv)/mean(1-data5y.6v$pred) improve 1.42 to 1.14
@@ -2179,7 +2197,7 @@ dat_cal.6.RP.re <- dat_cal.6.RP.re[order(dat_cal.6.RP.re$pred), ]
 
 
 
-#png("PINE-4yr1.png",width = 3500,height =2000,res = 400)
+png("PINE-4yr-re1.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.6.RP.re$pred, #x is predicted risk from the 
@@ -2189,9 +2207,9 @@ plot(
   xlim = c(0, 1),
   ylim = c(0, 1), 
   lwd = 2,
-  xlab = "Predicted risk from developed model",
+  xlab = "Predicted risk from development model with new boundary knots position and intercept",
   ylab = "Predicted risk from refitted model",  
-  main = "Validation dataset is PINE study",
+  main = "Validation dataset is PINE",
   bty = "n" #no box
 )
 
@@ -2215,7 +2233,7 @@ legend("topleft",
         lwd = c(2, 2, 2),
         bty = "n",
         cex = 0.8)
-#dev.off()
+dev.off()
 
 # Numerical measures
 absdiff_cph.6.RP.re <- abs(dat_cal.6.RP.re$pred - dat_cal.6.RP.re$obs)
@@ -2238,7 +2256,9 @@ numsum_cph.6.RP.re
 
 # I am not sure if this is actual survival? 
 
-data5y.1v$pred.act<-predict(vcal.1.RP,type = "survival",times = 4,newdata = data5y.1v)[[2]]  
+vcal.1.weak <- flexsurvspline(Surv(year, cens) ~risk.cll, data = data5y.1v, k=1,bknots = c(log(1.147159),log(3.761807)),scale = "odds")
+
+data5y.1v$pred.act<-predict(vcal.1.weak,type = "survival",times = 4,newdata = data5y.1v)[[2]] #actual survival 
 
 data5y.1v$g_st<-log((1/data5y.1v$pred.act)-1)
 
@@ -2250,22 +2270,18 @@ summary(val.1)
 
 calslope_summary.1 <- c(
   "calibration slope" = val.1$coefficients[2],
-  "2.5 %"  = val.1$coefficients[2] - 1.96 * 0.001374,
-  "97.5 %" = val.1$coefficients[2] + 1.96 * 0.001374
+  "2.5 %"  = val.1$coefficients[2] - 1.96 * 0.001632,
+  "97.5 %" = val.1$coefficients[2] + 1.96 * 0.001632
 )
 
 calslope_summary.1
 
 #---leave ICICLE out----
 
-data5y.2v$pred.act<-predict(vcal.2.RP,type = "survival",times = 4,newdata = data5y.2v)[[2]]
 
-#model.val.2<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.2v,k=1,bknots = c(log(1.601643),log(3.827515)),scale = "odds") #Warning: Ran out of iterations and did not converge
+vcal.2.weak <- flexsurvspline(Surv(year, cens) ~risk.cll, data = data5y.2v, k=1,bknots = c(log(1.601643), log(3.827515)),scale = "odds")
 
-data5y.2%>%
- filter(cens==1)%>%  #cens==1 event
-  summarise(max(year),min(year))  
-
+data5y.2v$pred.act<-predict(vcal.2.weak,type = "survival",times = 4,newdata = data5y.2v)[[2]] #actual survival 
 
 data5y.2v$g_st<-log((1/data5y.2v$pred.act)-1)
 
@@ -2275,8 +2291,8 @@ summary(val.2)
 
 calslope_summary.2 <- c(
   "calibration slope" = val.2$coefficients[2],
-  "2.5 %"  = val.2$coefficients[2] - 1.96 * 0.007952,
-  "97.5 %" = val.2$coefficients[2] + 1.96 * 0.007952
+  "2.5 %"  = val.2$coefficients[2] - 1.96 * 0.001216,
+  "97.5 %" = val.2$coefficients[2] + 1.96 * 0.001216
 )
 
 
@@ -2284,9 +2300,9 @@ calslope_summary.2
 
 #---leave NYPUM out----
 
-data5y.3v$pred.act<-predict(vcal.3.RP,type = "survival",times = 4,newdata = data5y.3v)[[2]]
+vcal.3.weak <- flexsurvspline(Surv(year, cens) ~risk.cll, data = data5y.3v, k=1,bknots = c(log(0.8925394), log(3.789185)),scale = "odds")
 
-#model.val.3<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.3v,k=1,bknots = c(log(0.8925394),log(3.789185)),scale = "odds") #Warning: Ran out of iterations and did not converge
+data5y.3v$pred.act<-predict(vcal.3.weak,type = "survival",times = 4,newdata = data5y.3v)[[2]] #actual survival 
 
 data5y.3v$g_st<-log((1/data5y.3v$pred.act)-1)
 
@@ -2296,19 +2312,17 @@ val.3<-lm(g_st~lp.3,data = data5y.3v)
 
 calslope_summary.3 <- c(
   "calibration slope" = val.3$coefficients[2],
-  "2.5 %"  = val.3$coefficients[2] - 1.96 * 0.005186,
-  "97.5 %" = val.3$coefficients[2] + 1.96 * 0.005186
+  "2.5 %"  = val.3$coefficients[2] - 1.96 * 0.004041,
+  "97.5 %" = val.3$coefficients[2] + 1.96 * 0.004041
 )
 
 calslope_summary.3
 
 #---leave ParkWest out----
 
-data5y.4v$pred.act<-predict(vcal.4.RP,type = "survival",times = 4,newdata = data5y.4v)[[2]]
+vcal.4.weak <- flexsurvspline(Surv(year, cens) ~risk.cll, data = data5y.4v, k=1,bknots = c(log(1.990418), log(3.811088)),scale = "odds")
 
-#model.val.4<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.4v,k=1,bknots = c(log(1.990418),log(3.811088)),scale = "odds") #Warning: Ran out of iterations and did not converge
-
-#data5y.4v$pred.act<-predict(model.val.4,type = "survival",times = 4,newdata = data5y.4v)[[2]]
+data5y.4v$pred.act<-predict(vcal.4.weak,type = "survival",times = 4,newdata = data5y.4v)[[2]] #actual survival
 
 data5y.4v$g_st<-log((1/data5y.4v$pred.act)-1)
 
@@ -2318,19 +2332,17 @@ val.4<-lm(g_st~lp.4,data = data5y.4v)
 
 calslope_summary.4 <- c(
   "calibration slope" = val.4$coefficients[2],
-  "2.5 %"  = val.4$coefficients[2] - 1.96 * 0.001579,
-  "97.5 %" = val.4$coefficients[2] + 1.96 * 0.001579
+  "2.5 %"  = val.4$coefficients[2] - 1.96 * 0.002054,
+  "97.5 %" = val.4$coefficients[2] + 1.96 * 0.002054
 )
 
 calslope_summary.4
 
 #---leave PICNICS out----
 
-data5y.5v$pred.act<-predict(vcal.5.RP,type = "survival",times = 4,newdata = data5y.5v)[[2]]
+vcal.5.weak <- flexsurvspline(Surv(year, cens) ~risk.cll, data = data5y.5v, k=1,bknots = c(log(0.1067762), log(3.8987)),scale = "odds")
 
-#model.val.5<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.5v,k=1,bknots = c(log(0.1067762),log(3.8987)),scale = "odds")
-
-#data5y.5v$pred.act<-predict(model.val.5,type = "survival",times = 4,newdata = data5y.5v)[[2]]
+data5y.5v$pred.act<-predict(vcal.5.weak,type = "survival",times = 4,newdata = data5y.5v)[[2]] #actual survival
 
 data5y.5v$g_st<-log((1/data5y.5v$pred.act)-1)
 
@@ -2340,8 +2352,8 @@ val.5<-lm(g_st~lp.5,data = data5y.5v)
 
 calslope_summary.5 <- c(
   "calibration slope" = val.5$coefficients[2],
-  "2.5 %"  = val.5$coefficients[2] - 1.96 * 0.024224,
-  "97.5 %" = val.5$coefficients[2] + 1.96 * 0.024224
+  "2.5 %"  = val.5$coefficients[2] - 1.96 * 0.003821,
+  "97.5 %" = val.5$coefficients[2] + 1.96 * 0.003821
 )
 
 calslope_summary.5
@@ -2349,9 +2361,9 @@ calslope_summary.5
 
 #---leave PINE out----
 
-#model.val.6<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl,data=data5y.6v,k=1,bknots = c(log(0.5557837),log(3.978097)),scale = "odds")
+vcal.5.weak <- flexsurvspline(Surv(year, cens) ~risk.cll, data = data5y.5v, k=1,bknots = c(log(0.5557837), log(3.978097)),scale = "odds")
 
-data5y.6v$pred.act<-predict(vcal.6.RP,type = "survival",times = 4,newdata = data5y.6v)[[2]]
+data5y.5v$pred.act<-predict(vcal.5.weak,type = "survival",times = 4,newdata = data5y.5v)[[2]] #actual survival
 
 data5y.6v$g_st<-log((1/data5y.6v$pred.act)-1)
 
@@ -2361,8 +2373,8 @@ summary(val.6)
 
 calslope_summary.6 <- c(
   "calibration slope" = val.6$coefficients[2],
-  "2.5 %"  = val.6$coefficients[2] - 1.96 *0.004252,
-  "97.5 %" = val.6$coefficients[2] + 1.96 * 0.004252
+  "2.5 %"  = val.6$coefficients[2] - 1.96 *0.005033,
+  "97.5 %" = val.6$coefficients[2] + 1.96 *0.005033
 )
 
 calslope_summary.6
@@ -2370,68 +2382,71 @@ calslope_summary.6
 
 ```
 
-```{r recalibration for Cam PINE}
+```{r recalibration2 for PICNICS PINE}
 
-#----CamPalGN----
+#----PICNICS----
 
 #Change intercept based on weak calibration
 
-#summary(val.1)
+#summary(val.5)
 
-data5y.1v$pred.re.1<-1/(1+exp(-16.937753-0.9346098+6.9+1.575655*data5y.1v$rcs1-1.286890*data5y.1v$rcs2+0.42*data5y.1v$lp.1))
+data5y.5v$pred.re.1<-1/(1+exp(-9.29836083-0.2930496-4.654+2.03774141*data5y.5v$rcs1-0.03969151*data5y.5v$rcs2+2.082*data5y.5v$lp.5)) #change the knots position and s(lnt;r) but keep the linear predictor the same
 
-(1-obj.1$surv)/mean(1-data5y.1v$pred.re.1) #Mean calibration improve again
+(1-obj.5$surv)/mean(1-data5y.5v$pred.re.1) #Mean calibration decrease
+#(1-obj.5$surv)/mean(1-data5y.5v$pred.re) decrease from 0.95 to 0.79
 
 #Before is (1-obj.1$surv)/mean(1-data5y.1v$pred.re), 0.8493298 to 1.04
 
-data5y.1v$risk.re.1<-1-data5y.1v$pred.re.1
+data5y.5v$risk.re.1<-1-data5y.5v$pred.re.1
 
-dat_cal.1.RP.re.1 <- cbind.data.frame(
-  "obs" = 1 - predict(vcal.1.RP,
+dat_cal.5.RP.re.1 <- cbind.data.frame(
+  "obs" = 1 - predict(vcal.5.RP,
                       type = "survival",
                       times = 4,
-                      newdata = data5y.1v)[[2]], #1-s(t=4) to get the refitted model predicted risk
+                      newdata = data5y.5v)[[2]], #1-s(t=4) to get the refitted model predicted risk
   
-  "lower" = 1 - predict(vcal.1.RP,
+  "lower" = 1 - predict(vcal.5.RP,
                         type = "survival",
                         conf.int = T,
                         times = 4,
-                        newdata = data5y.1v)[[4]],
+                        newdata = data5y.5v)[[4]],
   
-  "upper" = 1 - predict(vcal.1.RP,
+  "upper" = 1 - predict(vcal.5.RP,
                         type = "survival",
                         conf.int = T,
                         times = 4,
-                        newdata = data5y.1v)[[3]],
-  "pred" = data5y.1v$risk.re.1
+                        newdata = data5y.5v)[[3]],
+  "pred" = data5y.5v$risk.re.1
 )
 
 
 
+dat_cal.5.RP.re.1 <- dat_cal.5.RP.re.1[order(dat_cal.5.RP.re.1$pred), ]
 
-dat_cal.1.RP.re.1 <- dat_cal.1.RP.re.1[order(dat_cal.1.RP.re.1$pred), ]
 
+png("PIC-4yr-re2.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
-  x=dat_cal.1.RP.re.1$pred, #x is predicted risk from the 
-  y=dat_cal.1.RP.re.1$obs,
+  x=dat_cal.5.RP.re.1$pred, #x is predicted risk from the 
+  y=dat_cal.5.RP.re.1$obs,
   type = "l", 
   lty = 1, 
   xlim = c(0, 1),
   ylim = c(0, 1), 
   lwd = 2,
-  xlab = "Predicted risk from developed model",
+  xlab = "Predicted risk from developed model with new boundary knots position and intercept and coefficients",
   ylab = "Predicted risk from refitted model",  
+  main = "Validation dataset is PICNICS",
   bty = "n" #no box
 )
 
-lines(dat_cal.1.RP.re.1$pred, 
-      dat_cal.1.RP.re.1$lower, 
+lines(dat_cal.5.RP.re.1$pred, 
+      dat_cal.5.RP.re.1$lower, 
       type = "l", 
       lty = 2, 
       lwd = 2)
-lines(dat_cal.1.RP.re.1$pred, 
-      dat_cal.1.RP.re.1$upper,
+lines(dat_cal.5.RP.re.1$pred, 
+      dat_cal.5.RP.re.1$upper,
       type = "l", 
       lty = 2, 
       lwd = 2)
@@ -2445,16 +2460,17 @@ legend("bottomright",
         lwd = c(2, 2, 2),
         bty = "n",
         cex = 0.85)
+dev.off()
 
 # Numerical measures
-absdiff_cph.1.RP.re.1 <- abs(dat_cal.1.RP.re.1$pred - dat_cal.1.RP.re.1$obs)
+absdiff_cph.5.RP.re.1 <- abs(dat_cal.5.RP.re.1$pred - dat_cal.5.RP.re.1$obs)
 
-numsum_cph.1.RP.re.1 <- c(
-  "ICI" = mean(absdiff_cph.1.RP.re.1),
-  setNames(quantile(absdiff_cph.1.RP.re.1, c(0.5, 0.9)), c("E50", "E90")),
-  "Emax" = max(absdiff_cph.1.RP.re.1)
+numsum_cph.5.RP.re.1 <- c(
+  "ICI" = mean(absdiff_cph.5.RP.re.1),
+  setNames(quantile(absdiff_cph.5.RP.re.1, c(0.5, 0.9)), c("E50", "E90")),
+  "Emax" = max(absdiff_cph.5.RP.re.1)
 )
-numsum_cph.1.RP.re.1
+numsum_cph.5.RP.re.1
 
 
 #----PINE----
@@ -2465,10 +2481,12 @@ numsum_cph.1.RP.re.1
 
 #1/(1+exp(-21.016487+0.3555012+1.127613*log(4)-1.261545*data5y.6v$rcs2+data5y.6v$lp.6))
 
-data5y.6v$pred.re.1<-1/(1+exp(-21.016487+10.2+0.3555012+1.127613*log(4)-1.261545*data5y.6v$rcs2+0.37*data5y.6v$lp.6))
+data5y.6v$pred.re.1<-1/(1+exp(-21.10189+0.4388156+10.386+1.13516*log(4)-1.24703*data5y.6v$rcs2+0.36*data5y.6v$lp.6))
+
+#obatin coefficent model6 and times with 0.36
 
 (1-obj.6$surv)/mean(1-data5y.6v$pred.re.1) #Mean calibration improve
-#(1-obj.6$surv)/mean(1-data5y.6v$pred.re) improve 1.14 to 0.96
+#(1-obj.6$surv)/mean(1-data5y.6v$pred.re) improve 1.14 to 0.97
 
 data5y.6v$risk.re.1<-1-data5y.6v$pred.re.1
 
@@ -2494,6 +2512,7 @@ dat_cal.6.RP.re.1 <- cbind.data.frame(
 
 dat_cal.6.RP.re.1 <- dat_cal.6.RP.re.1[order(dat_cal.6.RP.re.1$pred), ]
 
+png("PINE-4yr-re2.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.6.RP.re.1$pred, #x is predicted risk from the 
@@ -2503,8 +2522,9 @@ plot(
   xlim = c(0, 1),
   ylim = c(0, 1), 
   lwd = 2,
-  xlab = "Predicted risk from developed model",
+  xlab = "Predicted risk from development model with new boundary knots position and intercept and coefficients",
   ylab = "Predicted risk from refitted model",  
+  main = "Validation dataset is PINE",
   bty = "n" #no box
 )
 
@@ -2529,6 +2549,8 @@ legend("bottomright",
         bty = "n",
         cex = 0.85)
 
+dev.off()
+
 # Numerical measures
 absdiff_cph.6.RP.re.1 <- abs(dat_cal.6.RP.re.1$pred - dat_cal.6.RP.re.1$obs)
 
@@ -2538,6 +2560,87 @@ numsum_cph.6.RP.re.1 <- c(
   "Emax" = max(absdiff_cph.6.RP.re.1)
 )
 numsum_cph.6.RP.re.1
+
+```
+
+```{r mean/weak calibration after recalibration}
+
+#-----PICNICS----
+
+OE_t.5.re <- (1-obj.5$surv)/mean(1-data5y.5v$pred.re) 
+OE_summary.5.re <- c(
+  "OE" = OE_t.5.re,
+  "2.5 %" = OE_t.5.re * exp(-qnorm(1 - alpha / 2) * sqrt(1 / obj.5$n.event)),
+  "97.5 %" = OE_t.5.re * exp(+qnorm(1 - alpha / 2) * sqrt(1 / obj.5$n.event))
+)
+
+OE_summary.5.re
+
+
+OE_t.5.re.1 <- (1-obj.5$surv)/mean(1-data5y.5v$pred.re.1) 
+OE_summary.5.re.1 <- c(
+  "OE" = OE_t.5.re.1,
+  "2.5 %" = OE_t.5.re.1 * exp(-qnorm(1 - alpha / 2) * sqrt(1 / obj.5$n.event)),
+  "97.5 %" = OE_t.5.re.1 * exp(+qnorm(1 - alpha / 2) * sqrt(1 / obj.5$n.event))
+)
+
+OE_summary.5.re.1
+
+
+data5y.5v$lp.5.re<-as.vector(as.matrix(des_matr5) %*% cbind(2.082*coef5))
+
+val.5.re<-lm(g_st~lp.5.re,data = data5y.5v)
+
+summary(val.5.re)
+
+calslope_summary.5.re <- c(
+  "calibration slope" = val.5.re$coefficients[2],
+  "2.5 %"  = val.5.re$coefficients[2] - 1.96 *0.001835,
+  "97.5 %" = val.5.re$coefficients[2] + 1.96 *0.001835
+)
+
+calslope_summary.5.re
+
+
+#-----PINE----
+
+OE_t.6.re <- (1-obj.6$surv)/mean(1-data5y.6v$pred.re) #type data5y.6v$pred.re.1 for second recalibration
+
+OE_summary.6.re <- c(
+  "OE" = OE_t.6.re,
+  "2.5 %" = OE_t.6.re * exp(-qnorm(1 - alpha / 2) * sqrt(1 / obj.6$n.event)),
+  "97.5 %" = OE_t.6.re * exp(+qnorm(1 - alpha / 2) * sqrt(1 / obj.6$n.event))
+)
+
+OE_summary.6.re
+
+
+OE_t.6.re.1 <- (1-obj.6$surv)/mean(1-data5y.6v$pred.re.1) #type data5y.6v$pred.re.1 for second recalibration
+
+OE_summary.6.re.1 <- c(
+  "OE" = OE_t.6.re.1,
+  "2.5 %" = OE_t.6.re.1 * exp(-qnorm(1 - alpha / 2) * sqrt(1 / obj.6$n.event)),
+  "97.5 %" = OE_t.6.re.1 * exp(+qnorm(1 - alpha / 2) * sqrt(1 / obj.6$n.event))
+)
+
+OE_summary.6.re.1
+
+
+
+data5y.6v$lp.6.re<-as.vector(as.matrix(des_matr6) %*% cbind(0.36*coef6))
+
+val.6.re<-lm(g_st~lp.6.re,data = data5y.6v)
+
+summary(val.6.re)
+
+calslope_summary.6.re <- c(
+  "calibration slope" = val.6.re$coefficients[2],
+  "2.5 %"  = val.6.re$coefficients[2] - 1.96 *0.01398,
+  "97.5 %" = val.6.re$coefficients[2] + 1.96 *0.01398
+)
+
+calslope_summary.6.re
+
 
 ```
 
