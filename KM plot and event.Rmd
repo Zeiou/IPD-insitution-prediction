@@ -150,9 +150,9 @@ lines(model1.12,newdata=risk.1.85.10,type = "survival",ci=FALSE,col=("darkgreen"
 lines(model1.12,newdata=risk.1.50.10,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
 lines(model1.12,newdata=risk.1.40.10,type = "survival",ci=FALSE,col=("red"),lty=1)
 legend("bottomleft",
-        c("risk <50%",
-          "risk 50-85%",
-          "risk >85%"),
+        c("risk up to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
         lty = c(1,2,5),
         col = c("red","darkblue","darkgreen"),
         cex = 0.85)
@@ -184,10 +184,10 @@ legend("bottomleft",
 dev.off()
 
 #mean survival cruve in each group 
-risk.1.85.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group==">85%",]$hybl,na=T))
-risk.1.50.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group=="50%-85%",]$hybl,na=T))
-risk.1.45.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group=="15%-50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group=="15%-50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group=="15%-50%",]$hybl,na=T))
-risk.1.15.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group=="<15%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group=="<15%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group=="<15%",]$hybl,na=T))
+risk.1.85.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group==">85%",]$hybl,na=T),mmsebltotal=mean(data12y.1v[data12y.1v$rick.group==">85%",]$mmsebltotal,na=T))
+risk.1.50.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group=="50%-85%",]$hybl,na=T),mmsebltotal=mean(data12y.1v[data12y.1v$rick.group=="50%-85%",]$mmsebltotal,na=T))
+risk.1.45.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group=="15%-50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group=="15%-50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group=="15%-50%",]$hybl,na=T),mmsebltotal=mean(data12y.1v[data12y.1v$rick.group=="15%-50%",]$mmsebltotal,na=T))
+risk.1.15.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group=="<15%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group=="<15%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group=="<15%",]$hybl,na=T),mmsebltotal=mean(data12y.1v[data12y.1v$rick.group=="<15%",]$mmsebltotal,na=T))
 
 
 
@@ -317,10 +317,10 @@ legend("bottomleft",
 dev.off()
 
 #mean survival cruve in each group 
-risk.3.85.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group==">85%",]$hybl,na=T))
-risk.3.50.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group=="50%-85%",]$hybl,na=T))
-risk.3.45.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group=="15%-50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group=="15%-50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group=="15%-50%",]$hybl,na=T))
-risk.3.15.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group=="<15%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group=="<15%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group=="<15%",]$hybl,na=T))
+risk.3.85.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group==">85%",]$hybl,na=T),mmsebltotal=mean(data12y.3v[data12y.3v$rick.group==">85%",]$mmsebltotal,na=T))
+risk.3.50.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group=="50%-85%",]$hybl,na=T),mmsebltotal=mean(data12y.3v[data12y.3v$rick.group=="50%-85%",]$mmsebltotal,na=T))
+risk.3.45.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group=="15%-50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group=="15%-50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group=="15%-50%",]$hybl,na=T),mmsebltotal=mean(data12y.3v[data12y.3v$rick.group=="15%-50%",]$mmsebltotal,na=T))
+risk.3.15.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group=="<15%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group=="<15%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group=="<15%",]$hybl,na=T),mmsebltotal=mean(data12y.3v[data12y.3v$rick.group=="<15%",]$mmsebltotal,na=T))
 ```
 
 ```{r plot predict risk ParkWest}
@@ -470,10 +470,10 @@ legend("bottomleft",
 dev.off()
 
 #mean survival cruve in each group 
-risk.5.85.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.5v[data12y.5v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.5v[data12y.5v$rick.group==">85%",]$hybl,na=T))
-risk.5.50.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.5v[data12y.5v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.5v[data12y.5v$rick.group=="50%-85%",]$hybl,na=T))
-risk.5.45.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group=="15%-50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.5v[data12y.5v$rick.group=="15%-50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.5v[data12y.5v$rick.group=="15%-50%",]$hybl,na=T))
-risk.5.15.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group=="<15%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.5v[data12y.5v$rick.group=="<15%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.5v[data12y.5v$rick.group=="<15%",]$hybl,na=T))
+risk.5.85.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.5v[data12y.5v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.5v[data12y.5v$rick.group==">85%",]$hybl,na=T),mmsebltotal=mean(data12y.5v[data12y.5v$rick.group==">85%",]$mmsebltotal,na=T))
+risk.5.50.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.5v[data12y.5v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.5v[data12y.5v$rick.group=="50%-85%",]$hybl,na=T),mmsebltotal=mean(data12y.5v[data12y.5v$rick.group=="50%-85%",]$mmsebltotal,na=T))
+risk.5.45.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group=="15%-50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.5v[data12y.5v$rick.group=="15%-50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.5v[data12y.5v$rick.group=="15%-50%",]$hybl,na=T),mmsebltotal=mean(data12y.5v[data12y.5v$rick.group=="15%-50%",]$mmsebltotal,na=T))
+risk.5.15.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group=="<15%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.5v[data12y.5v$rick.group=="<15%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.5v[data12y.5v$rick.group=="<15%",]$hybl,na=T),mmsebltotal=mean(data12y.5v[data12y.5v$rick.group=="<15%",]$mmsebltotal,na=T))
 ```
 
 ```{r plot predict risk PINE}
@@ -572,10 +572,10 @@ legend("bottomleft",
 dev.off()
 
 #mean survival cruve in each group 
-risk.6.85.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.6v[data12y.6v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.6v[data12y.6v$rick.group==">85%",]$hybl,na=T))
-risk.6.50.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.6v[data12y.6v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.6v[data12y.6v$rick.group=="50%-85%",]$hybl,na=T))
-risk.6.45.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group=="15%-50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.6v[data12y.6v$rick.group=="15%-50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.6v[data12y.6v$rick.group=="15%-50%",]$hybl,na=T))
-risk.6.15.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group=="<15%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.6v[data12y.6v$rick.group=="<15%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.6v[data12y.6v$rick.group=="<15%",]$hybl,na=T))
+risk.6.85.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.6v[data12y.6v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.6v[data12y.6v$rick.group==">85%",]$hybl,na=T),mmsebltotal=mean(data12y.6v[data12y.6v$rick.group==">85%",]$mmsebltotal,na=T))
+risk.6.50.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.6v[data12y.6v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.6v[data12y.6v$rick.group=="50%-85%",]$hybl,na=T),mmsebltotal=mean(data12y.6v[data12y.6v$rick.group=="50%-85%",]$mmsebltotal,na=T))
+risk.6.45.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group=="15%-50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.6v[data12y.6v$rick.group=="15%-50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.6v[data12y.6v$rick.group=="15%-50%",]$hybl,na=T),mmsebltotal=mean(data12y.6v[data12y.6v$rick.group=="15%-50%",]$mmsebltotal,na=T))
+risk.6.15.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group=="<15%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.6v[data12y.6v$rick.group=="<15%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.6v[data12y.6v$rick.group=="<15%",]$hybl,na=T),mmsebltotal=mean(data12y.6v[data12y.6v$rick.group=="<15%",]$mmsebltotal,na=T))
 
 
 ```
