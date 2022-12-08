@@ -94,24 +94,24 @@ data5y.1v$rick.group<-cut(data5y.1v$risk,breaks = quantile(data5y.1v$risk, probs
 
 KM5y.1v<-survfit(Surv(year,cens)~data5y.1v$rick.group,data=data5y.1v)
 
-#png("Cam-KM-4y.png",width = 3500,height =2000,res = 400)
-plot(KM5y.1v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),ylim = c(0.7,1),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
+png("Cam-KM-4y.png",width = 3500,height =2000,res = 400)
+plot(KM5y.1v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),ylim = c(0.7,1),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="CamPalGN")
 lines(model1,newdata=risk.1.85,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
 lines(model1,newdata=risk.1.50,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
 lines(model1,newdata=risk.1.40,type = "survival",ci=FALSE,col=("red"),lty=1)
 legend("bottomright",
-        c("risk <50%",
-          "risk 50-85%",
-          "risk >85%"),
+        c("risk up to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
         lty = c(1,2,5),
         col = c("red","darkblue","darkgreen"),
         cex = 0.85)
-#dev.off()
+dev.off()
 
 #mean survival cruve in each group 
-risk.1.85<-data.frame(age10=mean(data5y.1v[data5y.1v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.1v[data5y.1v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.1v[data5y.1v$rick.group==">85%",]$hybl,na=T))
-risk.1.50<-data.frame(age10=mean(data5y.1v[data5y.1v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.1v[data5y.1v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.1v[data5y.1v$rick.group=="50%-85%",]$hybl,na=T))
-risk.1.40<-data.frame(age10=mean(data5y.1v[data5y.1v$rick.group=="<50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.1v[data5y.1v$rick.group=="<50%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.1v[data5y.1v$rick.group=="<50%",]$hybl,na=T))
+risk.1.85<-data.frame(age10=mean(data5y.1v[data5y.1v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.1v[data5y.1v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.1v[data5y.1v$rick.group==">85%",]$hybl,na=T),mmsebltotal=mean(data5y.1v[data5y.1v$rick.group==">85%",]$mmsebltotal,na=T))
+risk.1.50<-data.frame(age10=mean(data5y.1v[data5y.1v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.1v[data5y.1v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.1v[data5y.1v$rick.group=="50%-85%",]$hybl,na=T),mmsebltotal=mean(data5y.1v[data5y.1v$rick.group=="50%-85%",]$mmsebltotal,na=T))
+risk.1.40<-data.frame(age10=mean(data5y.1v[data5y.1v$rick.group=="<50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.1v[data5y.1v$rick.group=="<50%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.1v[data5y.1v$rick.group=="<50%",]$hybl,na=T),mmsebltotal=mean(data5y.1v[data5y.1v$rick.group=="<50%",]$mmsebltotal,na=T))
 
 #---7year----
 
@@ -191,6 +191,56 @@ risk.1.15.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group=="<15%",]$a
 
 
 
+#-----recalibration-----
+
+
+#----7 years without updating----
+
+model1.10$knots
+
+#----10 years 4 groups------
+
+data12y.1v$rick.group<-cut(data12y.1v$risk,breaks = quantile(data12y.1v$risk, probs = c(0,0.15,0.5,0.85,1)),labels = c("<15%","15%-50%","50%-85%",">85%"))
+KM12y.1v<-survfit(Surv(year,cens)~data12y.1v$rick.group,data=data12y.1v)
+
+rcs.mod1.12.KM<-as.data.frame(basis(model1.12.re$knots,log(data12y.1v$year))) #basis spline
+data12y.1v$rcs1.KM<-rcs.mod1.12.KM[,2]
+data12y.1v$rcs2.KM<-rcs.mod1.12.KM[,3]
+
+dat_cal.1.12.RP.KM <- cbind.data.frame(
+  "predsur85" = 1/(1+exp(-10.9104500-0.5297541+1.6319907*data12y.1v$rcs1.KM-0.9665124*data12y.1v$rcs2.KM+as.vector(as.matrix(risk.1.85.10) %*% cbind(coef1.12)))),
+  "predsur50" = 1/(1+exp(-10.9104500-0.5297541+1.6319907*data12y.1v$rcs1.KM-0.9665124*data12y.1v$rcs2.KM+as.vector(as.matrix(risk.1.50.10) %*% cbind(coef1.12)))),
+  "predsur45" = 1/(1+exp(-10.9104500-0.5297541+1.6319907*data12y.1v$rcs1.KM-0.9665124*data12y.1v$rcs2.KM+as.vector(as.matrix(risk.1.45.10) %*% cbind(coef1.12)))),
+  "predsur15" = 1/(1+exp(-10.9104500-0.5297541+1.6319907*data12y.1v$rcs1.KM-0.9665124*data12y.1v$rcs2.KM+as.vector(as.matrix(risk.1.15.10) %*% cbind(coef1.12)))),
+  "time" =  data12y.1v$year       
+)
+dat_cal.1.12.RP.KM<- dat_cal.1.12.RP.KM[order(dat_cal.1.12.RP.KM$time), ]
+
+png("Cam-KM-10y-re.png",width = 3500,height =2000,res = 400)
+plot(KM12y.1v,col=c("red","orange","darkblue","darkgreen"),lty = c(1,6,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="CamPalGN (recalibration)")
+lines(x=dat_cal.1.12.RP.KM$time,y=dat_cal.1.12.RP.KM$predsur85,col=("darkgreen"),lty = 5,lwd=2)
+lines(x=dat_cal.1.12.RP.KM$time,y=dat_cal.1.12.RP.KM$predsur50,col=("darkblue"),lty=2,lwd=2)
+lines(x=dat_cal.1.12.RP.KM$time,y=dat_cal.1.12.RP.KM$predsur45,col=("orange"),lty=6,lwd=2)
+lines(x=dat_cal.1.12.RP.KM$time,y=dat_cal.1.12.RP.KM$predsur15,col=("red"),lty=1,lwd=2)
+legend("bottomleft",
+        c("risk up to 15th centile",
+          "risk >15th to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
+        lty = c(1,6,2,5),
+        col = c("red","orange","darkblue","darkgreen"),
+        cex = 0.85)
+dev.off()
+
+#mean survival cruve in each group 
+risk.1.85.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group==">85%",]$hybl,na=T),mmsebltotal=mean(data12y.1v[data12y.1v$rick.group==">85%",]$mmsebltotal,na=T))
+risk.1.50.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group=="50%-85%",]$hybl,na=T),mmsebltotal=mean(data12y.1v[data12y.1v$rick.group=="50%-85%",]$mmsebltotal,na=T))
+risk.1.45.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group=="15%-50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group=="15%-50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group=="15%-50%",]$hybl,na=T),mmsebltotal=mean(data12y.1v[data12y.1v$rick.group=="15%-50%",]$mmsebltotal,na=T))
+risk.1.15.10<-data.frame(age10=mean(data12y.1v[data12y.1v$rick.group=="<15%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.1v[data12y.1v$rick.group=="<15%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.1v[data12y.1v$rick.group=="<15%",]$hybl,na=T),mmsebltotal=mean(data12y.1v[data12y.1v$rick.group=="<15%",]$mmsebltotal,na=T))
+
+coef1.12<-c(model1.12$coefficients[4],model1.12$coefficients[5],model1.12$coefficients[6],model1.12$coefficients[7],model1.12$coefficients[8])
+
+
 ```
 
 ```{r plot predict risk ICICLE}
@@ -200,7 +250,7 @@ data5y.2v$rick.group<-cut(data5y.2v$risk,breaks = quantile(data5y.2v$risk, probs
 
 KM5y.2v<-survfit(Surv(year,cens)~data5y.2v$rick.group,data=data5y.2v)
 
-#png("IC-KM-4y.png",width = 3500,height =2000,res = 400)
+png("IC-KM-4y.png",width = 3500,height =2000,res = 400)
 plot(KM5y.2v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),ylim = c(0.7,1),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="ICICLE")
 lines(model2,newdata=risk.2.85,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
 lines(model2,newdata=risk.2.50,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
@@ -212,12 +262,12 @@ legend("bottomright",
         lty = c(1,2,5),
         col = c("red","darkblue","darkgreen"),
         cex = 0.85)
-#dev.off()
+dev.off()
 
 #mean survival cruve in each group 
-risk.2.85<-data.frame(age10=mean(data5y.2v[data5y.2v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.2v[data5y.2v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.2v[data5y.2v$rick.group==">85%",]$hybl,na=T))
-risk.2.50<-data.frame(age10=mean(data5y.2v[data5y.2v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.2v[data5y.2v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.2v[data5y.2v$rick.group=="50%-85%",]$hybl,na=T))
-risk.2.40<-data.frame(age10=mean(data5y.2v[data5y.2v$rick.group=="<50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.2v[data5y.2v$rick.group=="<50%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.2v[data5y.2v$rick.group=="<50%",]$hybl,na=T))
+risk.2.85<-data.frame(age10=mean(data5y.2v[data5y.2v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.2v[data5y.2v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.2v[data5y.2v$rick.group==">85%",]$hybl,na=T),mmsebltotal=mean(data5y.2v[data5y.2v$rick.group==">85%",]$mmsebltotal,na=T))
+risk.2.50<-data.frame(age10=mean(data5y.2v[data5y.2v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.2v[data5y.2v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.2v[data5y.2v$rick.group=="50%-85%",]$hybl,na=T),mmsebltotal=mean(data5y.2v[data5y.2v$rick.group=="50%-85%",]$mmsebltotal,na=T))
+risk.2.40<-data.frame(age10=mean(data5y.2v[data5y.2v$rick.group=="<50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.2v[data5y.2v$rick.group=="<50%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.2v[data5y.2v$rick.group=="<50%",]$hybl,na=T),mmsebltotal=mean(data5y.2v[data5y.2v$rick.group=="<50%",]$mmsebltotal,na=T))
 
 ```
 
@@ -228,22 +278,24 @@ data5y.3v$rick.group<-cut(data5y.3v$risk,breaks = quantile(data5y.3v$risk, probs
 
 KM5y.3v<-survfit(Surv(year,cens)~data5y.3v$rick.group,data=data5y.3v)
 
-plot(KM5y.3v,col=c("red","darkblue","darkgreen"),ylim = c(0.4,1),lty = c(1,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
+png("NY-KM-4y.png",width = 3500,height =2000,res = 400)
+plot(KM5y.3v,col=c("red","darkblue","darkgreen"),ylim = c(0.4,1),lty = c(1,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation", main="NYPUM")
 lines(model3,newdata=risk.3.85,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
 lines(model3,newdata=risk.3.50,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
 lines(model3,newdata=risk.3.40,type = "survival",ci=FALSE,col=("red"),lty=1)
 legend("bottomright",
-        c("risk <50%",
-          "risk 50-85%",
-          "risk >85%"),
+        c("risk up to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
         lty = c(1,2,5),
         col = c("red","darkblue","darkgreen"),
         cex = 0.85)
+dev.off()
 
 #mean survival cruve in each group 
-risk.3.85<-data.frame(age10=mean(data5y.3v[data5y.3v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.3v[data5y.3v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.3v[data5y.3v$rick.group==">85%",]$hybl,na=T))
-risk.3.50<-data.frame(age10=mean(data5y.3v[data5y.3v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.3v[data5y.3v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.3v[data5y.3v$rick.group=="50%-85%",]$hybl,na=T))
-risk.3.40<-data.frame(age10=mean(data5y.3v[data5y.3v$rick.group=="<50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.3v[data5y.3v$rick.group=="<50%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.3v[data5y.3v$rick.group=="<50%",]$hybl,na=T))
+risk.3.85<-data.frame(age10=mean(data5y.3v[data5y.3v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.3v[data5y.3v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.3v[data5y.3v$rick.group==">85%",]$hybl,na=T),mmsebltotal=mean(data5y.3v[data5y.3v$rick.group==">85%",]$mmsebltotal,na=T))
+risk.3.50<-data.frame(age10=mean(data5y.3v[data5y.3v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.3v[data5y.3v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.3v[data5y.3v$rick.group=="50%-85%",]$hybl,na=T),mmsebltotal=mean(data5y.3v[data5y.3v$rick.group=="50%-85%",]$mmsebltotal,na=T))
+risk.3.40<-data.frame(age10=mean(data5y.3v[data5y.3v$rick.group=="<50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.3v[data5y.3v$rick.group=="<50%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.3v[data5y.3v$rick.group=="<50%",]$hybl,na=T),mmsebltotal=mean(data5y.3v[data5y.3v$rick.group=="<50%",]$mmsebltotal,na=T))
 
 
 #-----7 year-----
@@ -272,7 +324,7 @@ risk.3.50.7<-data.frame(age10=mean(data10y.3v[data10y.3v$rick.group=="50%-85%",]
 risk.3.40.7<-data.frame(age10=mean(data10y.3v[data10y.3v$rick.group=="<50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data10y.3v[data10y.3v$rick.group=="<50%",]$mdsupdrs3.10,na=T),hybl=mean(data10y.3v[data10y.3v$rick.group=="<50%",]$hybl,na=T),mmsebltotal=mean(data10y.3v[data10y.3v$rick.group=="<50%",]$mmsebltotal,na=T))
 
 
-#-----10 year-----
+#-----Not run 10 year-----
 
 data12y.3v$rick.group<-cut(data12y.3v$risk,breaks = quantile(data12y.3v$risk, probs = c(0,0.5,0.85,1)),labels = c("<50%","50%-85%",">85%"))
 
@@ -321,6 +373,69 @@ risk.3.85.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group==">85%",]$a
 risk.3.50.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group=="50%-85%",]$hybl,na=T),mmsebltotal=mean(data12y.3v[data12y.3v$rick.group=="50%-85%",]$mmsebltotal,na=T))
 risk.3.45.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group=="15%-50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group=="15%-50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group=="15%-50%",]$hybl,na=T),mmsebltotal=mean(data12y.3v[data12y.3v$rick.group=="15%-50%",]$mmsebltotal,na=T))
 risk.3.15.10<-data.frame(age10=mean(data12y.3v[data12y.3v$rick.group=="<15%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.3v[data12y.3v$rick.group=="<15%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.3v[data12y.3v$rick.group=="<15%",]$hybl,na=T),mmsebltotal=mean(data12y.3v[data12y.3v$rick.group=="<15%",]$mmsebltotal,na=T))
+
+
+#-----recalibration----
+
+#-----7 year times with slope------
+
+rcs.mod3.10.KM<-as.data.frame(basis(model3.10.re$knots,log(data10y.3v$year))) #basis spline
+data10y.3v$rcs1.KM<-rcs.mod3.10.KM[,2]
+data10y.3v$rcs2.KM<-rcs.mod3.10.KM[,3]
+
+dat_cal.3.10.RP.KM <- cbind.data.frame(
+  "predsur85" = 1/(1+exp(-11.5986976+0.2562693-2.482+1.6024970*data10y.3v$rcs1.KM-0.6886425*data10y.3v$rcs2.KM+as.vector(as.matrix(risk.3.85.7) %*% cbind(1.439*coef3.10)))),
+  "predsur50" = 1/(1+exp(-11.5986976+0.2562693-2.482+1.6024970*data10y.3v$rcs1.KM-0.6886425*data10y.3v$rcs2.KM+as.vector(as.matrix(risk.3.50.7) %*% cbind(1.439*coef3.10)))),
+  "predsur40" = 1/(1+exp(-11.5986976+0.2562693-2.482+1.6024970*data10y.3v$rcs1.KM-0.6886425*data10y.3v$rcs2.KM+as.vector(as.matrix(risk.3.40.7) %*% cbind(1.439*coef3.10)))),
+  "time" =  data10y.3v$year       
+)
+dat_cal.3.10.RP.KM<- dat_cal.3.10.RP.KM[order(dat_cal.3.10.RP.KM$time), ]
+
+png("NY-KM-7y-re.png",width = 3500,height =2000,res = 400)
+plot(KM10y.3v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="NYPUM (recalibration)")
+lines(x=dat_cal.3.10.RP.KM$time, y=dat_cal.3.10.RP.KM$predsur85 ,col=("darkgreen"),lty = 5,lwd=2)
+lines(x=dat_cal.3.10.RP.KM$time, y=dat_cal.3.10.RP.KM$predsur50,col=("darkblue"),lty=2,lwd=2)
+lines(x=dat_cal.3.10.RP.KM$time, y=dat_cal.3.10.RP.KM$predsur40,col=("red"),lty=1,lwd=2)
+legend("bottomleft",
+        c("risk up to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
+        lty = c(1,2,5),
+        col = c("red","darkblue","darkgreen"),
+        cex = 0.85)
+dev.off()
+
+#-----10 years 4 group times with slope-----
+
+rcs.mod3.12.KM<-as.data.frame(basis(model3.12.re$knots,log(data12y.3v$year))) #basis spline
+data12y.3v$rcs1.KM<-rcs.mod3.12.KM[,2]
+data12y.3v$rcs2.KM<-rcs.mod3.12.KM[,3]
+
+dat_cal.3.12.RP.KM <- cbind.data.frame(
+  "predsur85" = 1/(1+exp(-9.980246+0.2426892-0.402+1.511023*data12y.3v$rcs1.KM-0.733772*data12y.3v$rcs2.KM+as.vector(as.matrix(risk.3.85.10) %*% cbind(1.287*coef3.12)))),
+  "predsur50" = 1/(1+exp(-9.980246+0.2426892-0.402+1.511023*data12y.3v$rcs1.KM-0.733772*data12y.3v$rcs2.KM+as.vector(as.matrix(risk.3.50.10) %*% cbind(1.287*coef3.12)))),
+  "predsur45" = 1/(1+exp(-9.980246+0.2426892-0.402+1.511023*data12y.3v$rcs1.KM-0.733772*data12y.3v$rcs2.KM+as.vector(as.matrix(risk.3.45.10) %*% cbind(1.287*coef3.12)))),
+  "predsur15" = 1/(1+exp(-9.980246+0.2426892-0.402+1.511023*data12y.3v$rcs1.KM-0.733772*data12y.3v$rcs2.KM+as.vector(as.matrix(risk.3.15.10) %*% cbind(1.287*coef3.12)))),
+  "time" =  data12y.3v$year       
+)
+dat_cal.3.12.RP.KM<- dat_cal.3.12.RP.KM[order(dat_cal.3.12.RP.KM$time), ]
+
+png("NY-KM-10y-re.png",width = 3500,height =2000,res = 400)
+plot(KM12y.3v,col=c("red","orange","darkblue","darkgreen"),lty = c(1,6,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="NYPUM (recalibration)")
+lines(x=dat_cal.3.12.RP.KM$time,y=dat_cal.3.12.RP.KM$predsur85,col=("darkgreen"),lty = 5,lwd=2)
+lines(x=dat_cal.3.12.RP.KM$time,y=dat_cal.3.12.RP.KM$predsur50,col=("darkblue"),lty=2,lwd=2)
+lines(x=dat_cal.3.12.RP.KM$time,y=dat_cal.3.12.RP.KM$predsur45,col=("orange"),lty=6,lwd=2)
+lines(x=dat_cal.3.12.RP.KM$time,y=dat_cal.3.12.RP.KM$predsur15,col=("red"),lty=1,lwd=2)
+legend("bottomleft",
+        c("risk up to 15th centile",
+          "risk >15th to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
+        lty = c(1,6,2,5),
+        col = c("red","orange","darkblue","darkgreen"),
+        cex = 0.85)
+dev.off()
+
 ```
 
 ```{r plot predict risk ParkWest}
@@ -330,22 +445,24 @@ data5y.4v$rick.group<-cut(data5y.4v$risk,breaks = quantile(data5y.4v$risk, probs
 
 KM5y.4v<-survfit(Surv(year,cens)~data5y.4v$rick.group,data=data5y.4v)
 
-plot(KM5y.4v,col=c("red","darkblue","darkgreen"),ylim = c(0.8,1),lty = c(1,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation")
+png("PA-KM-4y.png",width = 3500,height =2000,res = 400)
+plot(KM5y.4v,col=c("red","darkblue","darkgreen"),ylim = c(0.6,1),lty = c(1,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="ParkWest")
 lines(model4,newdata=risk.4.85,type = "survival",ci=FALSE,col=("darkgreen"),lty = 5)
 lines(model4,newdata=risk.4.50,type = "survival",ci=FALSE,col=("darkblue"),lty=2)
 lines(model4,newdata=risk.4.40,type = "survival",ci=FALSE,col=("red"),lty=1)
 legend("bottomright",
-        c("risk <50%",
-          "risk 50-85%",
-          "risk >85%"),
+        c("risk up to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
         lty = c(1,2,5),
         col = c("red","darkblue","darkgreen"),
         cex = 0.85)
+dev.off()
 
 #mean survival cruve in each group 
-risk.4.85<-data.frame(age10=mean(data5y.4v[data5y.4v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.4v[data5y.4v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.4v[data5y.4v$rick.group==">85%",]$hybl,na=T))
-risk.4.50<-data.frame(age10=mean(data5y.4v[data5y.4v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.4v[data5y.4v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.4v[data5y.4v$rick.group=="50%-85%",]$hybl,na=T))
-risk.4.40<-data.frame(age10=mean(data5y.4v[data5y.4v$rick.group=="<50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.4v[data5y.4v$rick.group=="<50%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.4v[data5y.4v$rick.group=="<50%",]$hybl,na=T))
+risk.4.85<-data.frame(age10=mean(data5y.4v[data5y.4v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.4v[data5y.4v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.4v[data5y.4v$rick.group==">85%",]$hybl,na=T),mmsebltotal=mean(data5y.4v[data5y.4v$rick.group==">85%",]$mmsebltotal,na=T))
+risk.4.50<-data.frame(age10=mean(data5y.4v[data5y.4v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.4v[data5y.4v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.4v[data5y.4v$rick.group=="50%-85%",]$hybl,na=T),mmsebltotal=mean(data5y.4v[data5y.4v$rick.group=="50%-85%",]$mmsebltotal,na=T))
+risk.4.40<-data.frame(age10=mean(data5y.4v[data5y.4v$rick.group=="<50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data5y.4v[data5y.4v$rick.group=="<50%",]$mdsupdrs3.10,na=T),hybl=mean(data5y.4v[data5y.4v$rick.group=="<50%",]$hybl,na=T),mmsebltotal=mean(data5y.4v[data5y.4v$rick.group=="<50%",]$mmsebltotal,na=T))
 
 
 #-----7 year-----
@@ -372,6 +489,38 @@ dev.off()
 risk.4.85.7<-data.frame(age10=mean(data10y.4v[data10y.4v$rick.group==">85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data10y.4v[data10y.4v$rick.group==">85%",]$mdsupdrs3.10,na=T),hybl=mean(data10y.4v[data10y.4v$rick.group==">85%",]$hybl,na=T),mmsebltotal=mean(data10y.4v[data10y.4v$rick.group==">85%",]$mmsebltotal,na=T))
 risk.4.50.7<-data.frame(age10=mean(data10y.4v[data10y.4v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data10y.4v[data10y.4v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data10y.4v[data10y.4v$rick.group=="50%-85%",]$hybl,na=T),mmsebltotal=mean(data10y.4v[data10y.4v$rick.group=="50%-85%",]$mmsebltotal,na=T))
 risk.4.40.7<-data.frame(age10=mean(data10y.4v[data10y.4v$rick.group=="<50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data10y.4v[data10y.4v$rick.group=="<50%",]$mdsupdrs3.10,na=T),hybl=mean(data10y.4v[data10y.4v$rick.group=="<50%",]$hybl,na=T),mmsebltotal=mean(data10y.4v[data10y.4v$rick.group=="<50%",]$mmsebltotal,na=T))
+
+
+#-----Recalibration----
+
+#-----7 years only intercept-----
+
+
+rcs.mod4.10.KM<-as.data.frame(basis(model4.10.re$knots,log(data10y.4v$year))) #basis spline
+data10y.4v$rcs1.KM<-rcs.mod4.10.KM[,2]
+data10y.4v$rcs2.KM<-rcs.mod4.10.KM[,3]
+
+dat_cal.4.10.RP.KM <- cbind.data.frame(
+  "predsur85" = 1/(1+exp(-10.7255500-0.1811158+1.9490276*data10y.4v$rcs1.KM-0.9483685*data10y.4v$rcs2.KM+as.vector(as.matrix(risk.4.85.7) %*% cbind(coef4.10)))),
+  "predsur50" = 1/(1+exp(-10.7255500-0.1811158+1.9490276*data10y.4v$rcs1.KM-0.9483685*data10y.4v$rcs2.KM+as.vector(as.matrix(risk.4.50.7) %*% cbind(coef4.10)))),
+  "predsur40" = 1/(1+exp(-10.7255500-0.1811158+1.9490276*data10y.4v$rcs1.KM-0.9483685*data10y.4v$rcs2.KM+as.vector(as.matrix(risk.4.40.7) %*% cbind(coef4.10)))),
+  "time" =  data10y.4v$year       
+)
+dat_cal.4.10.RP.KM<- dat_cal.4.10.RP.KM[order(dat_cal.4.10.RP.KM$time), ]
+
+png("PA-KM-7y-re.png",width = 3500,height =2000,res = 400)
+plot(KM10y.4v,col=c("red","darkblue","darkgreen"),ylim=c(0.2,1),lty = c(1,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="ParkWest (recalibration)")
+lines(x=dat_cal.4.10.RP.KM$time,y=dat_cal.4.10.RP.KM$predsur85,col=("darkgreen"),lty = 5,lwd=2)
+lines(x=dat_cal.4.10.RP.KM$time,y=dat_cal.4.10.RP.KM$predsur50,col=("darkblue"),lty=2,lwd=2)
+lines(x=dat_cal.4.10.RP.KM$time,y=dat_cal.4.10.RP.KM$predsur40,col=("red"),lty=1,lwd=2)
+legend("bottomleft",
+        c("risk up to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
+        lty = c(1,2,5),
+        col = c("red","darkblue","darkgreen"),
+        cex = 0.85)
+dev.off()
 
 ```
 
@@ -426,7 +575,7 @@ risk.5.50.7<-data.frame(age10=mean(data10y.5v[data10y.5v$rick.group=="50%-85%",]
 risk.5.40.7<-data.frame(age10=mean(data10y.5v[data10y.5v$rick.group=="<50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data10y.5v[data10y.5v$rick.group=="<50%",]$mdsupdrs3.10,na=T),hybl=mean(data10y.5v[data10y.5v$rick.group=="<50%",]$hybl,na=T),mmsebltotal=mean(data10y.5v[data10y.5v$rick.group=="<50%",]$mmsebltotal,na=T))
 
 
-#---10year----
+#---Not run 10year----
 
 data12y.5v$rick.group<-cut(data12y.5v$risk,breaks = quantile(data12y.5v$risk, probs = c(0,0.5,0.85,1)),labels = c("<50%","50%-85%",">85%"))
 KM12y.5v<-survfit(Surv(year,cens)~data12y.5v$rick.group,data=data12y.5v)
@@ -474,6 +623,101 @@ risk.5.85.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group==">85%",]$a
 risk.5.50.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group=="50%-85%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.5v[data12y.5v$rick.group=="50%-85%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.5v[data12y.5v$rick.group=="50%-85%",]$hybl,na=T),mmsebltotal=mean(data12y.5v[data12y.5v$rick.group=="50%-85%",]$mmsebltotal,na=T))
 risk.5.45.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group=="15%-50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.5v[data12y.5v$rick.group=="15%-50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.5v[data12y.5v$rick.group=="15%-50%",]$hybl,na=T),mmsebltotal=mean(data12y.5v[data12y.5v$rick.group=="15%-50%",]$mmsebltotal,na=T))
 risk.5.15.10<-data.frame(age10=mean(data12y.5v[data12y.5v$rick.group=="<15%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.5v[data12y.5v$rick.group=="<15%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.5v[data12y.5v$rick.group=="<15%",]$hybl,na=T),mmsebltotal=mean(data12y.5v[data12y.5v$rick.group=="<15%",]$mmsebltotal,na=T))
+
+
+#-----recalibration----
+
+#----10 years 4 group----
+
+rcs.mod5.12.KM<-as.data.frame(basis(model5.12.re$knots,log(data12y.5v$year))) #basis spline
+data12y.5v$rcs1.KM<-rcs.mod5.12.KM[,2]
+data12y.5v$rcs2.KM<-rcs.mod5.12.KM[,3]
+
+dat_cal.5.12.RP.KM <- cbind.data.frame(
+  "predsur85" = 1/(1+exp(-10.2478365-0.1813029+1.3102989*data12y.5v$rcs1.KM-0.2546462*data12y.5v$rcs2.KM+as.vector(as.matrix(risk.5.85.10) %*% cbind(coef5.12)))),
+  "predsur50" = 1/(1+exp(-10.2478365-0.1813029+1.3102989*data12y.5v$rcs1.KM-0.2546462*data12y.5v$rcs2.KM+as.vector(as.matrix(risk.5.50.10) %*% cbind(coef5.12)))),
+  "predsur45" = 1/(1+exp(-10.2478365-0.1813029+1.3102989*data12y.5v$rcs1.KM-0.2546462*data12y.5v$rcs2.KM+as.vector(as.matrix(risk.5.45.10) %*% cbind(coef5.12)))),
+  "predsur15" = 1/(1+exp(-10.2478365-0.1813029+1.3102989*data12y.5v$rcs1.KM-0.2546462*data12y.5v$rcs2.KM+as.vector(as.matrix(risk.5.15.10) %*% cbind(coef5.12)))),
+  "time" =  data12y.5v$year       
+)
+dat_cal.5.12.RP.KM<- dat_cal.5.12.RP.KM[order(dat_cal.5.12.RP.KM$time), ]
+
+png("PIC-KM-10y-re.png",width = 3500,height =2000,res = 400)
+plot(KM12y.5v,col=c("red","orange","darkblue","darkgreen"),lty = c(1,6,2,5),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="PICNICS (recalibration)")
+lines(x=dat_cal.5.12.RP.KM$time,y=dat_cal.5.12.RP.KM$predsur85 ,col=("darkgreen"),lty = 5,lwd=2)
+lines(x=dat_cal.5.12.RP.KM$time,y=dat_cal.5.12.RP.KM$predsur50,col=("darkblue"),lty=2,lwd=2)
+lines(x=dat_cal.5.12.RP.KM$time,y=dat_cal.5.12.RP.KM$predsur45,col=("orange"),lty=6,lwd=2)
+lines(x=dat_cal.5.12.RP.KM$time,y=dat_cal.5.12.RP.KM$predsur15,col=("red"),lty=1,lwd=2)
+legend("bottomleft",
+        c("risk up to 15th centile",
+          "risk >15th to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
+        lty = c(1,6,2,5),
+        col = c("red","orange","darkblue","darkgreen"),
+        cex = 0.85)
+dev.off()
+
+
+#-----7 years only intercept-----
+
+
+rcs.mod5.10.KM<-as.data.frame(basis(model5.10.re$knots,log(data10y.5v$year))) #basis spline
+data10y.5v$rcs1.KM<-rcs.mod5.10.KM[,2]
+data10y.5v$rcs2.KM<-rcs.mod5.10.KM[,3]
+
+dat_cal.5.10.RP.KM <- cbind.data.frame(
+  "predsur85" = 1/(1+exp(-12.5345129-0.3926876+1.3984278*data10y.5v$rcs1.KM-0.3301756*data10y.5v$rcs2.KM+as.vector(as.matrix(risk.5.85.7) %*% cbind(coef5.10)))),
+  "predsur50" = 1/(1+exp(-12.5345129-0.3926876+1.3984278*data10y.5v$rcs1.KM-0.3301756*data10y.5v$rcs2.KM+as.vector(as.matrix(risk.5.50.7) %*% cbind(coef5.10)))),
+  "predsur40" = 1/(1+exp(-12.5345129-0.3926876+1.3984278*data10y.5v$rcs1.KM-0.3301756*data10y.5v$rcs2.KM+as.vector(as.matrix(risk.5.40.7) %*% cbind(coef5.10)))),
+  "time" =  data10y.5v$year       
+)
+dat_cal.5.10.RP.KM<- dat_cal.5.10.RP.KM[order(dat_cal.5.10.RP.KM$time), ]
+
+png("PIC-KM-7y-re.png",width = 3500,height =2000,res = 400)
+plot(KM10y.5v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),ylim = c(0.1,1),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="PICNICS (recalibration)")
+lines(x=dat_cal.5.10.RP.KM$time, y=dat_cal.5.10.RP.KM$predsur85 ,col=("darkgreen"),lty = 5,lwd=2)
+lines(x=dat_cal.5.10.RP.KM$time, y=dat_cal.5.10.RP.KM$predsur50 ,col=("darkblue"),lty=2,lwd=2)
+lines(x=dat_cal.5.10.RP.KM$time, y=dat_cal.5.10.RP.KM$predsur40 ,col=("red"),lty=1,lwd=2)
+legend("bottomleft",
+        c("risk up to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
+        lty = c(1,2,5),
+        col = c("red","darkblue","darkgreen"),
+        cex = 0.85)
+dev.off()
+
+
+#-----4 year-----
+
+rcs.mod5.5.KM<-as.data.frame(basis(model5.re$knots,log(data5y.5v$year))) #basis spline
+data5y.5v$rcs1.KM<-rcs.mod5.5.KM[,2]
+data5y.5v$rcs2.KM<-rcs.mod5.5.KM[,3]
+
+dat_cal.5.4.RP.KM <- cbind.data.frame(
+  "predsur85" = 1/(1+exp(-9.29836083-0.2930496-4.654+2.03774141*data5y.5v$rcs1.KM-0.03969151*data5y.5v$rcs2.KM+as.vector(as.matrix(risk.5.85) %*% cbind(2.082*coef5)))),
+  "predsur50" = 1/(1+exp(-9.29836083-0.2930496-4.654+2.03774141*data5y.5v$rcs1.KM-0.03969151*data5y.5v$rcs2.KM+as.vector(as.matrix(risk.5.50) %*% cbind(2.082*coef5)))),
+  "predsur40" = 1/(1+exp(-9.29836083-0.2930496-4.654+2.03774141*data5y.5v$rcs1.KM-0.03969151*data5y.5v$rcs2.KM+as.vector(as.matrix(risk.5.40) %*% cbind(2.082*coef5)))),
+  "time" =  data5y.5v$year       
+)
+dat_cal.5.4.RP.KM<- dat_cal.5.4.RP.KM[order(dat_cal.5.4.RP.KM$time), ]
+
+
+png("PIC-KM-4y-re.png",width = 3500,height =2000,res = 400)
+plot(KM5y.5v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),ylim = c(0.6,1),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="PICNICS (recalibration)")
+lines(x=dat_cal.5.4.RP.KM$time,y=dat_cal.5.4.RP.KM$predsur85 ,col=("darkgreen"),lty = 5,lwd=2)
+lines(x=dat_cal.5.4.RP.KM$time,y=dat_cal.5.4.RP.KM$predsur50,col=("darkblue"),lty=2,lwd=2)
+lines(x=dat_cal.5.4.RP.KM$time,y=dat_cal.5.4.RP.KM$predsur40,col=("red"),lty=1,lwd=2)
+legend("bottomright",
+        c("risk up to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
+        lty = c(1,2,5),
+        col = c("red","darkblue","darkgreen"),
+        cex = 0.85)
+dev.off()
+
 ```
 
 ```{r plot predict risk PINE}
@@ -577,6 +821,66 @@ risk.6.50.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group=="50%-85%",
 risk.6.45.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group=="15%-50%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.6v[data12y.6v$rick.group=="15%-50%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.6v[data12y.6v$rick.group=="15%-50%",]$hybl,na=T),mmsebltotal=mean(data12y.6v[data12y.6v$rick.group=="15%-50%",]$mmsebltotal,na=T))
 risk.6.15.10<-data.frame(age10=mean(data12y.6v[data12y.6v$rick.group=="<15%",]$age10,na=T),sex=0,mdsupdrs3.10=mean(data12y.6v[data12y.6v$rick.group=="<15%",]$mdsupdrs3.10,na=T),hybl=mean(data12y.6v[data12y.6v$rick.group=="<15%",]$hybl,na=T),mmsebltotal=mean(data12y.6v[data12y.6v$rick.group=="<15%",]$mmsebltotal,na=T))
 
+
+
+#----recalibration----
+
+
+#-----7 years with slope-----
+
+rcs.mod6.10.KM<-as.data.frame(basis(model6.10.re$knots,log(data10y.6v$year))) #basis spline
+data10y.6v$rcs1.KM<-rcs.mod6.10.KM[,2]
+data10y.6v$rcs2.KM<-rcs.mod6.10.KM[,3]
+
+dat_cal.6.10.RP.KM <- cbind.data.frame(
+  "predsur85" = 1/(1+exp(-17.248849-0.04667447+4.77+1.520297*data10y.6v$rcs1.KM-0.699059*data10y.6v$rcs2.KM+as.vector(as.matrix(risk.6.85.7) %*% cbind(0.606*coef6.10)))),
+  "predsur50" = 1/(1+exp(-17.248849-0.04667447+4.77+1.520297*data10y.6v$rcs1.KM-0.699059*data10y.6v$rcs2.KM+as.vector(as.matrix(risk.6.50.7) %*% cbind(0.606*coef6.10)))),
+  "predsur40" = 1/(1+exp(-17.248849-0.04667447+4.77+1.520297*data10y.6v$rcs1.KM-0.699059*data10y.6v$rcs2.KM+as.vector(as.matrix(risk.6.40.7) %*% cbind(0.606*coef6.10)))),
+  "time" =  data10y.6v$year       
+)
+dat_cal.6.10.RP.KM<- dat_cal.6.10.RP.KM[order(dat_cal.6.10.RP.KM$time), ]
+
+png("PIN-KM-7y-re.png",width = 3500,height =2000,res = 400)
+plot(KM10y.6v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),ylim = c(0,1),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="PINE (recalibration)")
+lines(x=dat_cal.6.10.RP.KM$time, y=dat_cal.6.10.RP.KM$predsur85,col=("darkgreen"),lty = 5,lwd=2)
+lines(x=dat_cal.6.10.RP.KM$time, y=dat_cal.6.10.RP.KM$predsur50,col=("darkblue"),lty=2,lwd=2)
+lines(x=dat_cal.6.10.RP.KM$time, y=dat_cal.6.10.RP.KM$predsur40,col=("red"),lty=1,lwd=2)
+legend("bottomleft",
+        c("risk up to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
+        lty = c(1,2,5),
+        col = c("red","darkblue","darkgreen"),
+        cex = 0.85)
+dev.off()
+
+#-----4 year----
+
+rcs.mod5.6.KM<-as.data.frame(basis(model6.re$knots,log(data5y.6v$year))) #basis spline
+data5y.6v$rcs1.KM<-rcs.mod5.6.KM[,2]
+data5y.6v$rcs2.KM<-rcs.mod5.6.KM[,3]
+
+dat_cal.6.4.RP.KM <- cbind.data.frame(
+  "predsur85" = 1/(1+exp(-21.10189+0.4388156+10.386+1.13516*data5y.6v$rcs1.KM-1.24703*data5y.6v$rcs2.KM+as.vector(as.matrix(risk.6.85) %*% cbind(0.36*coef6)))),
+  "predsur50" = 1/(1+exp(-21.10189+0.4388156+10.386+1.13516*data5y.6v$rcs1.KM-1.24703*data5y.6v$rcs2.KM+as.vector(as.matrix(risk.6.50) %*% cbind(0.36*coef6)))),
+  "predsur40" = 1/(1+exp(-21.10189+0.4388156+10.386+1.13516*data5y.6v$rcs1.KM-1.24703*data5y.6v$rcs2.KM+as.vector(as.matrix(risk.6.40) %*% cbind(0.36*coef6)))),
+  "time" =  data5y.6v$year       
+)
+dat_cal.6.4.RP.KM<- dat_cal.6.4.RP.KM[order(dat_cal.6.4.RP.KM$time), ]
+
+png("PINE-KM-4y-re.png",width = 3500,height =2000,res = 400)
+plot(KM5y.6v,col=c("red","darkblue","darkgreen"),lty = c(1,2,5),ylim = c(0.7,1),xlab = "Time to institutionalisation (years)",ylab = "Cumulative probability of non-institutionalisation",main="PINE (recalibration)")
+lines(x=dat_cal.6.4.RP.KM$time ,y=dat_cal.6.4.RP.KM$predsur85 ,col=("darkgreen"),lty = 5,lwd=2)
+lines(x=dat_cal.6.4.RP.KM$time ,y=dat_cal.6.4.RP.KM$predsur50,col=("darkblue"),lty=2,lwd=2)
+lines(x=dat_cal.6.4.RP.KM$time ,y=dat_cal.6.4.RP.KM$predsur40,col=("red"),lty=1,lwd=2)
+legend("bottomright",
+        c("risk up to 50th centile",
+          "risk >50th to 85th centile",
+          "risk >85th centile"),
+        lty = c(1,2,5),
+        col = c("red","darkblue","darkgreen"),
+        cex = 0.85)
+dev.off()
 
 ```
 
