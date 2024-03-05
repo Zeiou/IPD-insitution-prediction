@@ -31,6 +31,7 @@ library(metafor)
 library(png)
 library(meta)
 library(grid)
+library(survival)
 library(flexsurv)
 library(pacman)
 ```
@@ -1166,6 +1167,7 @@ dat_cal.1.RP <- cbind.data.frame(
 
 dat_cal.1.RP <- dat_cal.1.RP[order(dat_cal.1.RP$pred), ]
 
+#png("CamPalGN-4y.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.1.RP$pred, #x is predicted risk from the 
@@ -1177,6 +1179,7 @@ plot(
   lwd = 2,
   xlab = "Predicted risk from developed model",
   ylab = "Predicted risk from refitted model",  
+  main = "Validation dataset is CamPalGN",
   bty = "n" #no box
 )
 
@@ -1191,7 +1194,7 @@ lines(dat_cal.1.RP$pred,
       lty = 2, 
       lwd = 2)
 abline(0, 1, lwd = 2, lty = 2, col = 2)
-legend("bottomright",
+legend("topleft",
         c("Ideal calibration",
           "Calibration curve based on secondary Royston-Parmar model",
           "95% confidence interval"),
@@ -1200,6 +1203,8 @@ legend("bottomright",
         lwd = c(2, 2, 2),
         bty = "n",
         cex = 0.85)
+
+#dev.off()
 
 # Numerical measures
 absdiff_cph.1.RP <- abs(dat_cal.1.RP$pred - dat_cal.1.RP$obs)
@@ -1354,6 +1359,7 @@ dat_cal.3.RP <- cbind.data.frame(
 
 dat_cal.3.RP <- dat_cal.3.RP[order(dat_cal.3.RP$pred), ]
 
+#png("NYPUM-4y.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.3.RP$pred, #x is predicted risk from the 
@@ -1364,7 +1370,8 @@ plot(
   ylim = c(0, 1), 
   lwd = 2,
   xlab = "Predicted risk from developed model",
-  ylab = "Predicted risk from refitted model",  
+  ylab = "Predicted risk from refitted model", 
+  main = "Validation dataset is NYPUM",
   bty = "n" #no box
 )
 
@@ -1388,6 +1395,8 @@ legend("bottomright",
         lwd = c(2, 2, 2),
         bty = "n",
         cex = 0.85)
+#dev.off()
+
 
 # Numerical measures
 absdiff_cph.3.RP <- abs(dat_cal.3.RP$pred - dat_cal.3.RP$obs)
@@ -1444,6 +1453,7 @@ dat_cal.4.RP <- cbind.data.frame(
 
 dat_cal.4.RP <- dat_cal.4.RP[order(dat_cal.4.RP$pred), ]
 
+#png("ParkWest-4y.png",width = 3500,height =2000,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.4.RP$pred, #x is predicted risk from the 
@@ -1455,6 +1465,7 @@ plot(
   lwd = 2,
   xlab = "Predicted risk from developed model",
   ylab = "Predicted risk from refitted model",  
+  main = "Validation dataset is ParkWest",
   bty = "n" #no box
 )
 
@@ -1469,7 +1480,7 @@ lines(dat_cal.4.RP$pred,
       lty = 2, 
       lwd = 2)
 abline(0, 1, lwd = 2, lty = 2, col = 2)
-legend("bottomright",
+legend("topleft",
         c("Ideal calibration",
           "Calibration curve based on secondary Royston-Parmar model",
           "95% confidence interval"),
@@ -1478,6 +1489,8 @@ legend("bottomright",
         lwd = c(2, 2, 2),
         bty = "n",
         cex = 0.85)
+
+#dev.off()
 
 # Numerical measures
 absdiff_cph.4.RP <- abs(dat_cal.4.RP$pred - dat_cal.4.RP$obs)
