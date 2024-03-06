@@ -478,7 +478,7 @@ OE_summary.6.10
 #moderate calibration uses smooth curves of predicted risk from a more complex ‘secondary’ Cox model against the predicted risk from the development model 
 
 
-#---Not run leave CamPalGN out----
+#---leave CamPalGN out----
 
 #data10y.1v$pred<-predict(model1.10,newdata = data10y.1v,type = "survival",times = 7)[[2]]  #survival probabilities
 
@@ -497,8 +497,9 @@ data10y.1v%>%
 
 # Estimate actual risk
 
-#vcal.1.10.RP <- flexsurvspline(Surv(year, cens) ~rcs(risk.cll,3), data = data10y.1v, k=1,bknots = c(log(1.147159),log(6.773443)),scale = "odds")
+vcal.1.10.RP <- flexsurvspline(Surv(year, cens) ~rcs(risk.cll,3), data = data10y.1v, k=1,bknots = c(log(1.147159),log(6.773443)),scale = "odds")
 
+#Error in optim(method = "BFGS", par = c(gamma0 = 1248.46031146024, gamma1 = 9.60937995841959e-10,  : initial value in 'vmmin' is not finite
 
 #survest function is to estimate survival probabilities
 
@@ -2009,7 +2010,7 @@ calslope_summary.4.10.re <- c(
 
 calslope_summary.4.10.re
 
-#----PICNICS---
+#----PICNICS----
 
 OE_t.5.10.re <- (1-obj.5.10$surv)/mean(1-data10y.5v$pred.re)
 
@@ -2045,7 +2046,7 @@ calslope_summary.5.10.re <- c(
 
 calslope_summary.5.10.re
 
-#----PINE---
+#----PINE----
 
 OE_t.6.10.re <- (1-obj.6.10$surv)/mean(1-data10y.6v$pred.re)
 
