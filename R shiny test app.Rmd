@@ -1,0 +1,212 @@
+---
+title: "Shiny app test"
+output: html_document
+date: "2025-04-30"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r package}
+
+#install.packages("shiny")
+
+library("shiny")
+
+#install.packages("flexsurv")
+
+
+library("flexsurv")
+
+
+```
+
+```{r test shiny}
+
+#runExample("03_reactivity")
+
+```
+
+```{r Input UI}
+
+
+ui <- fluidPage(
+  titlePanel("Royston-Parmar Model for Survival Prediction"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("study", "Select Study Dataset", choices = c("CamPalGN", "NYPUM", "PICNICS", "PINE")),
+      numericInput("age", "Age", value = 70, min = 30, max = 100),
+      selectInput("sex", "Gender", choices = c("Male" = 0, "Female" = 1)),
+      numericInput("updrs3", "MDS-UPDRS III", value = 60, min = 0, max = 132),
+      numericInput("hy", "Hoehn and Yahr Scale", value = 2, min = 0, max = 5),
+      numericInput("mmse", "MMSE", value = 27, min = 0, max = 30),
+      numericInput("year", "Prediction year", value = 10, min = 0, max = 10)
+    ),
+    
+    mainPanel(
+      textOutput("riskEstimate")
+    )
+  )
+)
+
+
+```
+
+
+```{r study-specific model}
+
+server <- function(input, output, session) {
+  
+library(flexsurv)  # needed for basis()
+
+model_list <- list(
+  CamPalGN = list(
+    gamma = c(-11.44,1.63, -0.97),
+    beta = c(age = 1.19, sex = 0.05, updrs3 = 0.16, hy = 0.35, mmse = -0.16),
+    knots = c(0.14, 1.82, 2.2)
+  ),
+  NYPUM = list(
+    gamma = c(-10.14,1.51, -0.73),
+    beta = c(age = 1.43, sex = -0.01, updrs3 = 0.15, hy = 0.50, mmse = -0.23),
+    knots = c(-0.11, 1.83, 2.25)
+  ), 
+  PICNICS = list(
+    gamma = c(-12.93,1.40, -0.33),
+    beta = c(age = 1.14, sex = -0.21, updrs3 = 0.16, hy = 0.41, mmse = -0.11),
+    knots = c(-2.24, 1.51, 1.93)
+  ),
+  PINE = list(
+    gamma = c(-16.35,0.76, -0.55),
+    beta = c(age = 1.41, sex = 0.08, updrs3 = 0.11, hy = 0.44, mmse = -0.07),
+    knots = c(-2.24, 1.87, 2.30)
+  )
+)
+
+ output$riskEstimate <- renderText({
+    req(input$study, input$year)  # ensure these inputs are available
+    # Select study-specific parameters
+    params <- model_list[[input$study]]
+    
+    # Calculate linear predictor (LP)
+    lp <- (input$age / 10) * params$beta["age"] +
+          as.numeric(input$sex) * params$beta["sex"] +
+          (input$updrs3 / 10) * params$beta["updrs3"] +
+          input$hy * params$beta["hy"] +
+          input$mmse * params$beta["mmse"]
+    
+    # Basis spline for log(time)
+    log_time <- log(input$year)
+    basis_vals <- basis(params$knots, log_time)
+    
+    # Make sure gamma and basis are compatible
+    gamma_term <- sum(params$gamma * basis_vals)
+
+    # Calculate log cumulative hazard: intercept + sum(gamma * basis values) + LP
+    log_ch <- gamma_term + lp
+    
+    #survival
+    su<-exp(-exp(log_ch))
+    
+    #risk
+    risk<-1-su
+    
+    paste0(
+      
+    "intercept", round(gamma_term, 3), "\n",
+    
+    "lp", round(lp, 3),
+    
+    "survival",round(su * 100, 2), "%",
+    
+    "risk",round(risk * 100, 2), "%"
+    )
+  })
+}
+
+```
+
+```{r test if correct}
+
+6*1.19+0.16*3+2*0.35-0.16*27
+
+-11.44+4
+
+1/(1+exp(7.44))*100
+
+#paste0("Predicted survival probability at ", input$year, " years: ", round(risk * 100, 2), "%")
+
+
+#Linear predictor (LP): 4 Basis values: 1, 2.303, -1.754 Sum(gamma * basis): -3.463 Log cumulative hazard: -10.903
+
+-3.463-11.44
+
+#Need to check the basis function for the spline, this is not correct
+
+basis(c(0.14, 1.82, 2.2),log(10))
+
+2.302585*1.63-1.754167*-0.97-11.4*1
+
+-5.97+1.19*7+0.05*0+0.16*6+0.35*2-0.16*27
+
+1-1/exp(-0.3)
+
+1-exp(1.97)
+
+
+
+```
+
+
+```{r UI and Server}
+
+shinyApp(ui = ui, server = server)
+
+
+```
+
+
+
+
+```{r server logic}
+
+server <- function(input, output) {
+  
+  output$riskEstimate <- renderText({
+    
+    # Extract user inputs
+    age.10 <- input$age/10
+    gender <- ifelse(input$gender == "Male", 0, 1)
+    mdsupdrs.10 <- input$mdsupdrs/10
+    hybl<-input$hybl
+    mmse<-input$mmse
+    year<-input$year
+    
+    # Example model calculation (replace with your Royston-Parmar model)
+    
+    risk <- age.10  # Replace with actual model
+    
+    # Return the result
+    paste("The estimated risk of institutionlisation: ", round(risk, 2))
+  })
+  
+}
+
+
+```
+
+
+```{r tips}
+
+#Input Fields: Replace the example model with your actual Royston-Parmar formula.
+
+#Model Logic: You can use the survival or flexsurv package to run your Royston-Parmar model and calculate the predicted risk based on user inputs.
+
+#Output: Display the predicted risk as a text output or plot.
+
+#You could also add plots (e.g., survival curves) using plotOutput() to visualize the results.
+
+#If you have a model object, you can load it in the app and use predict() to estimate the risk for the given inputs.
+
+```
