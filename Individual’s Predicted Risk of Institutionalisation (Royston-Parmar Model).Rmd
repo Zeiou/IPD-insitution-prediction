@@ -1,0 +1,162 @@
+---
+title: "Individual’s Predicted Risk of Institutionalisation (Royston-Parmar Model)"
+output: html_document
+date: "2025-04-30"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r package}
+
+#install.packages("shiny")
+
+library("shiny")
+
+#install.packages("flexsurv")
+
+
+library("flexsurv")
+
+
+```
+
+```{r test shiny}
+
+#runExample("03_reactivity")
+
+```
+
+```{r Input UI}
+
+
+ui <- fluidPage(
+  
+  # Smaller title using HTML
+  titlePanel(
+    div(style = "font-size:22px; font-weight: bold; margin-bottom: 20px;",
+        "Individual’s Predicted Risk of Institutionalisation (Royston-Parmar Model)"
+    )
+  ),
+  
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("study", "Select Study Dataset", choices = c("CamPalGN", "NYPUM", "PICNICS", "PINE")),
+      numericInput("age", "Age", value = 70, min = 30, max = 100),
+      selectInput("sex", "Gender", choices = c("Male" = 0, "Female" = 1)),
+      numericInput("updrs3", "MDS-UPDRS III", value = 60, min = 0, max = 132),
+      numericInput("hy", "Hoehn and Yahr Scale", value = 2, min = 0, max = 5),
+      numericInput("mmse", "MMSE", value = 27, min = 0, max = 30),
+      numericInput("year", "Prediction year", value = 10, min = 0, max = 10)
+    ),
+    
+     mainPanel(
+      # Larger, bold output
+      div(
+        style = "font-size:18px; font-weight:bold; margin-top:20px;",
+        textOutput("riskEstimate")
+      )
+    )
+  )
+)
+
+
+```
+
+
+```{r study-specific model}
+
+server <- function(input, output, session) {
+  
+library(flexsurv)  # needed for basis()
+
+model_list <- list(
+  CamPalGN = list(
+    gamma = c(-11.44,1.63, -0.97),
+    beta = c(age = 1.19, sex = 0.05, updrs3 = 0.16, hy = 0.35, mmse = -0.16),
+    knots = c(0.14, 1.82, 2.2)
+  ),
+  NYPUM = list(
+    gamma = c(-10.14,1.51, -0.73),
+    beta = c(age = 1.43, sex = -0.01, updrs3 = 0.15, hy = 0.50, mmse = -0.23),
+    knots = c(-0.11, 1.83, 2.25)
+  ), 
+  PICNICS = list(
+    gamma = c(-12.93,1.40, -0.33),
+    beta = c(age = 1.14, sex = -0.21, updrs3 = 0.16, hy = 0.41, mmse = -0.11),
+    knots = c(-2.24, 1.51, 1.93)
+  ),
+  PINE = list(
+    gamma = c(-16.35,0.76, -0.55),
+    beta = c(age = 1.41, sex = 0.08, updrs3 = 0.11, hy = 0.44, mmse = -0.07),
+    knots = c(-2.24, 1.87, 2.30)
+  )
+)
+
+#Reactive wrapper to fetch selected model
+
+params <- reactive({
+    req(input$study)
+    model_list[[input$study]]
+  })
+
+  output$riskEstimate <- renderText({
+    req(input$year)
+    
+#Correct use of reactive object
+    
+p <- params()
+    
+    # Calculate linear predictor (LP)
+    lp <- (input$age / 10) * p$beta["age"] +
+          as.numeric(input$sex) * p$beta["sex"] +
+          (input$updrs3 / 10) * p$beta["updrs3"] +
+          input$hy * p$beta["hy"] +
+          input$mmse * p$beta["mmse"]
+    
+    # Basis spline for log(time)
+    log_time <- log(input$year)
+    basis_vals <- basis(p$knots, log_time)
+    
+    # Make sure gamma and basis are compatible
+    gamma_term <- sum(p$gamma * basis_vals)
+
+    # Calculate log cumulative hazard: intercept + sum(gamma * basis values) + LP
+    log_ch <- gamma_term + lp
+    
+    #survival
+    su<-exp(-exp(log_ch))
+    
+    #risk
+    risk<-1-su
+    
+    paste0("Predicted risk of institutionalisation at ", input$year, " years: ", round(risk * 100, 2), "%")
+    
+  })
+}
+
+```
+
+
+
+```{r UI and Server}
+
+shinyApp(ui = ui, server = server)
+
+
+```
+
+```{r publish}
+
+#install.packages("rsconnect")
+
+#library(rsconnect)
+rsconnect::setAccountInfo(name='yan61726',
+			  token='32ACCB2536BE4ED96E13DC03DE199F65',
+			  secret='EpqhV2tIw7xb2ZtBhGV1Z7DKUcHvjLRHapTiO7kj')
+
+# Deploy app from your R project folder
+rsconnect::deployApp('C:/Users/61726/OneDrive - University of Aberdeen (1)/Postdoc things/The institutionlisation paper')
+
+```
