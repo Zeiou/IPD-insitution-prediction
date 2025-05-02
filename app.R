@@ -202,11 +202,9 @@ shinyApp(ui = ui, server = server)
 
 
 
-
-
 #install.packages("rsconnect")
 
-#library(rsconnect)
+library(rsconnect)
 rsconnect::setAccountInfo(name='yan61726',
                           token='32ACCB2536BE4ED96E13DC03DE199F65',
                           secret='EpqhV2tIw7xb2ZtBhGV1Z7DKUcHvjLRHapTiO7kj')
