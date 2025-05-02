@@ -36,7 +36,7 @@ study_data <- data.frame(
   Study = c("CamPalGN", "NYPUM", "PICNICS", "PINE"),
   "Number of patients, n"= c(129, 124, 270, 200),
   "Age (years), mean (SD)" = c("70.2 (9.7)", "70.7 (9.6)", "68.6 (9.7)", "72.6 (10.3)"),
-  "Male,n(%)" = c("73(56.6%)", "77(62.1%)", "165(61.1%)", "123(61.5%)"),
+  "Male,n(%)" = c("73 (56.6%)", "77 (62.1%)", "165 (61.1%)", "123 (61.5%)"),
   "Hoehn and Yahr Scale,median (IQR)" = c("2.0 (1.5,2.5)", "2.0 (2.0,2.5)", "2.0 (1.0,2.0)", "2.5 (2.0,3.0)"),
   "MDS-UPDRS III,median (IQR)" = c("32.9 (22.1,42.5)", "34.1 (25.1,43.0)", "29 (22.0,38.0)", "31.1 (21.5,40.7)"),
   "MMSE,median (IQR)" = c("28.0 (27.0,29.0)", "29.0 (28.0,30.0)", "29.0 (28.0,30.0)", "29.0 (28.0,30.0)"),
@@ -46,7 +46,7 @@ study_data <- data.frame(
 incidence_data <- data.frame(
   Study = c("CamPalGN", "NYPUM", "PICNICS", "PINE"),
   `Incidence rate (per 100 person-years)` = c(2.8, 6.2, 3.3, 5.0),
-  `Median time in years` = c(10, 9.22, 10.00, 9.43),
+  `Median time of follow-up (years)` = c(10, 9.22, 10.00, 9.43),
   check.names = FALSE
 )
 
