@@ -1,23 +1,11 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
 
 
 
-
-#install.packages("shiny")
-
-library("shiny")
-
-#install.packages("flexsurv")
-
-
-library("flexsurv")
+# Install and load necessary packages
+if (!require("shiny")) install.packages("shiny", dependencies = TRUE)
+if (!require("flexsurv")) install.packages("flexsurv", dependencies = TRUE)
+library(shiny)
+library(flexsurv)
 
 
 
@@ -195,20 +183,5 @@ server <- function(input, output, session) {
 
 
 
-
-
-
 shinyApp(ui = ui, server = server)
-
-
-
-#install.packages("rsconnect")
-
-library(rsconnect)
-rsconnect::setAccountInfo(name='yan61726',
-                          token='32ACCB2536BE4ED96E13DC03DE199F65',
-                          secret='EpqhV2tIw7xb2ZtBhGV1Z7DKUcHvjLRHapTiO7kj')
-
-# Deploy app from your R project folder
-rsconnect::deployApp()
 
