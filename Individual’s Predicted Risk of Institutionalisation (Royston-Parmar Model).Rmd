@@ -1,7 +1,9 @@
 ---
 title: "Individual’s Predicted Risk of Institutionalisation (Royston-Parmar Model)"
-output: html_document
-date: "2025-04-30"
+output: 
+  html_document:
+    runtime: shiny
+    self_contained: true
 ---
 
 ```{r setup, include=FALSE}
@@ -28,18 +30,57 @@ library("flexsurv")
 
 ```
 
+```{r Study population characteristic}
+
+study_data <- data.frame(
+  Study = c("CamPalGN", "NYPUM", "PICNICS", "PINE"),
+  "Number of patients, n"= c(129, 124, 270, 200),
+  "Age (years), mean (SD)" = c("70.2 (9.7)", "70.7 (9.6)", "68.6 (9.7)", "72.6 (10.3)"),
+  "Male,n(%)" = c("73(56.6%)", "77(62.1%)", "165(61.1%)", "123(61.5%)"),
+  "Hoehn and Yahr Scale,median (IQR)" = c("2.0 (1.5,2.5)", "2.0 (2.0,2.5)", "2.0 (1.0,2.0)", "2.5 (2.0,3.0)"),
+  "MDS-UPDRS III,median (IQR)" = c("32.9 (22.1,42.5)", "34.1 (25.1,43.0)", "29 (22.0,38.0)", "31.1 (21.5,40.7)"),
+  "MMSE,median (IQR)" = c("28.0 (27.0,29.0)", "29.0 (28.0,30.0)", "29.0 (28.0,30.0)", "29.0 (28.0,30.0)"),
+  check.names = FALSE
+)
+
+incidence_data <- data.frame(
+  Study = c("CamPalGN", "NYPUM", "PICNICS", "PINE"),
+  `Incidence rate (per 100 person-years)` = c(2.8, 6.2, 3.3, 5.0),
+  `Median time in years` = c(10, 9.22, 10.00, 9.43),
+  check.names = FALSE
+)
+
+
+```
+
+
+
 ```{r Input UI}
 
 
 ui <- fluidPage(
   
-  # Smaller title using HTML
-  titlePanel(
-    div(style = "font-size:22px; font-weight: bold; margin-bottom: 20px;",
-        "Individual’s Predicted Risk of Institutionalisation (Royston-Parmar Model)"
-    )
+# Big main title
+  tags$h2(
+    "Individual’s Predicted Risk of Institutionalisation (Royston-Parmar Model)",
+    style = "font-weight: bold; margin-bottom: 20px;"
   ),
-  
+
+ # Instructions
+  div(style = "font-size:16px; margin-bottom: 30px;",
+      HTML("<ol>
+             <li>Please select the study that most closely matches your patient population. The characteristics of the selected study population will be shown in the table.</li>
+             <li>Enter the patient’s clinical information.</li>
+             <li>Choose the prediction time (in years).</li>
+           </ol>")
+  ),
+    
+
+  div(style = "font-size:16px; font-weight:bold; margin-top:30px; margin-bottom:10px;", 
+      textOutput("selectedStudy")
+  ),
+
+
   sidebarLayout(
     sidebarPanel(
       selectInput("study", "Select Study Dataset", choices = c("CamPalGN", "NYPUM", "PICNICS", "PINE")),
@@ -56,7 +97,18 @@ ui <- fluidPage(
       div(
         style = "font-size:18px; font-weight:bold; margin-top:20px;",
         textOutput("riskEstimate")
-      )
+      ),
+      hr(),
+      div(style = "font-size:16px; font-weight:bold; margin-top:20px;", 
+          textOutput("selectedStudy")
+      ),
+      tableOutput("studySummary"),
+      
+      br(),
+      div(style = "font-size:16px; font-weight:bold; margin-top:20px;", 
+      "Incidence Rate Summary"
+      ),
+      tableOutput("incidenceSummary")
     )
   )
 )
@@ -134,6 +186,21 @@ p <- params()
     paste0("Predicted risk of institutionalisation at ", input$year, " years: ", round(risk * 100, 2), "%")
     
   })
+  
+  # (new) render selected study name
+  output$selectedStudy <- renderText({
+    paste("You selected:", input$study)
+  })
+
+  # (new) render study summary info
+  output$studySummary <- renderTable({
+    study_data[study_data$Study == input$study, ]
+  }, striped = TRUE, bordered = TRUE, hover = TRUE)
+  
+  output$incidenceSummary <- renderTable({
+  incidence_data[incidence_data$Study == input$study, ]
+}, striped = TRUE, bordered = TRUE, hover = TRUE)
+  
 }
 
 ```
@@ -157,6 +224,6 @@ rsconnect::setAccountInfo(name='yan61726',
 			  secret='EpqhV2tIw7xb2ZtBhGV1Z7DKUcHvjLRHapTiO7kj')
 
 # Deploy app from your R project folder
-rsconnect::deployApp('C:/Users/61726/OneDrive - University of Aberdeen (1)/Postdoc things/The institutionlisation paper')
+rsconnect::deployApp()
 
 ```
