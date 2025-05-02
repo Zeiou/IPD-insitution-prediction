@@ -51,7 +51,7 @@ ui <- fluidPage(
   
   # Big main title
   tags$h2(
-    "Individual’s Predicted Risk of Institutionalisation (Royston-Parmar Model)",
+    "Individual's Predicted Risk of Institutionalisation (Royston-Parmar Model)",
     style = "font-weight: bold; margin-bottom: 20px;"
   ),
   
