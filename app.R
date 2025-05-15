@@ -7,7 +7,7 @@ if (!require("flexsurv")) install.packages("flexsurv", dependencies = TRUE)
 library(shiny)
 library(flexsurv)
 
-
+#----Data setup---
 
 study_data <- data.frame(
   Study = c("CamPalGN", "NYPUM", "PICNICS", "PINE"),
@@ -30,16 +30,13 @@ incidence_data <- data.frame(
 
 
 
-
-
-
-
+#---UI----
 
 ui <- fluidPage(
   
   # Big main title
   tags$h2(
-    "Individual's Predicted Risk of Institutionalisation (Royston-Parmar Model)",
+    "Prediction of Institutionalisation in Parkinson's Disease",
     style = "font-weight: bold; margin-bottom: 20px;"
   ),
   
@@ -63,11 +60,17 @@ ui <- fluidPage(
       selectInput("study", "Select Study Dataset", choices = c("CamPalGN", "NYPUM", "PICNICS", "PINE")),
       numericInput("age", "Age", value = 70, min = 30, max = 100),
       selectInput("sex", "Gender", choices = c("Male" = 0, "Female" = 1)),
-      numericInput("updrs3", "MDS-UPDRS III", value = 60, min = 0, max = 132),
+      numericInput("updrs3", "MDS-UPDRS III", value = 30, min = 0, max = 132),
       numericInput("hy", "Hoehn and Yahr Scale", value = 2, min = 0, max = 5),
       numericInput("mmse", "MMSE", value = 27, min = 0, max = 30),
-      numericInput("year", "Prediction year", value = 10, min = 0, max = 10)
-    ),
+     
+      
+#Replaced numericInput with dynamic UI
+      uiOutput("yearInput"),
+
+#Optional warning message for PICNICS
+      uiOutput("yearWarning")
+  ),
     
     mainPanel(
       # Larger, bold output
@@ -92,9 +95,7 @@ ui <- fluidPage(
 
 
 
-
-
-
+#---  Server---
 
 server <- function(input, output, session) {
   
@@ -130,6 +131,32 @@ server <- function(input, output, session) {
     model_list[[input$study]]
   })
   
+#Dynamic max prediction year
+  
+  max_years <- reactive({
+    if (input$study == "PICNICS") 7 else 10
+  })
+  
+#Dynamic prediction year input with max limit
+  
+  output$yearInput <- renderUI({
+    numericInput("year", "Prediction year", 
+                 value = min(10, max_years()), min = 1, max = max_years())
+  })
+
+# Dynamic warning based on selected study and year input
+  
+  output$yearWarning <- renderUI({
+    if (!is.null(input$year) && input$year > max_years()) {
+      div(style = "color:red; font-size:14px; margin-top:10px;",
+          paste0("Note: The ", input$study, 
+                 " model was developed for predictions up to ", max_years(), 
+                 " years. Predictions beyond this may be unreliable."))
+    }
+  })
+
+#Calculate predicted risk  
+  
   output$riskEstimate <- renderText({
     req(input$year)
     
@@ -160,7 +187,7 @@ server <- function(input, output, session) {
     #risk
     risk<-1-su
     
-    paste0("Predicted risk of institutionalisation at ", input$year, " years: ", round(risk * 100, 2), "%")
+    paste0("Predicted risk of institutionalisation at ", input$year, " years: ", round(risk * 100, 1), "%")
     
   })
   
@@ -182,6 +209,6 @@ server <- function(input, output, session) {
 
 
 
-
+#Run app
 shinyApp(ui = ui, server = server)
 
