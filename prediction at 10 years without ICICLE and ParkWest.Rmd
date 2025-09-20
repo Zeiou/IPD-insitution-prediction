@@ -15,6 +15,8 @@ imp3.12y<-subset(imp3.temp12, timegroup == 1) #only the first 10 year
 ```
 
 
+
+
 ```{r exclude ICICLE ParkWest}
 
 imp3.12y%>%
@@ -60,7 +62,7 @@ PO1.12
 ```
 
 
-```{r Harrell Uno 7 years}
+```{r Harrell Uno 10 years}
 
 #---leave CamPalGN out----
 
@@ -144,7 +146,9 @@ data12y.5v<-imp3.12y%>%
 #Boundary knots location
 data12y.5%>%
   filter(cens==1)%>%  #cens==1 event
-  summarise(max(year),min(year))  
+  summarise(max(year),min(year)) 
+
+#internal knot is in the median
 
 #refit model
 model5.12<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal,data=data12y.5,k=1,bknots = c(log(0.5557837),log(9.596167)),scale = "odds")
@@ -180,8 +184,26 @@ data12y.6%>%
   filter(cens==1)%>%  #cens==1 event
   summarise(max(year),min(year))  
 
+#internal knot is in the median
+
+#data12y.6%>%
+#  filter(cens==1)%>%  #cens==1 event
+#  summarise(median(year))  
+
+#log(6.503765)
+
+
 #refit model
 model6.12<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal,data=data12y.6,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+
+#In the end the PINE was original model
+#rcs.mod6.12<-as.data.frame(basis(model6.12$knots,log(10)))
+#data12y.6$rcs1<-rcs.mod6.12[,2]
+#data12y.6$rcs2<-rcs.mod6.12[,3]
+
+#-16.3529+0.7646*data12y.6$rcs1-0.5496*data12y.6$rcs2
+
+
 
 #linear predictor 
 # Design matrix of predictors
@@ -388,7 +410,7 @@ OE_summary.6.12
 
 # predicted risk
 
-data12y.1v$risk <-(1-data12y.1v$pred) #predicted risk, as 1 - S(t|X),the probabilities of events
+data12y.1v$risk<-(1-data12y.1v$pred) #predicted risk, as 1 - S(t|X),the probabilities of events
 
 data12y.1v$risk.cll <- log(-log(1-data12y.1v$risk)) #complementary log-log link
 
@@ -431,7 +453,7 @@ dat_cal.1.12 <- cbind.data.frame(
 
 dat_cal.1.12 <- dat_cal.1.12[order(dat_cal.1.12$pred), ]
 
-png("Cam-10y.png",width = 3500,height =2000,res = 400)
+png("Cam-10y.png",width = 3500,height =3500,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.1.12$pred, #x is predicted risk from the 
@@ -524,7 +546,7 @@ dat_cal.3.12 <- cbind.data.frame(
 
 dat_cal.3.12 <- dat_cal.3.12[order(dat_cal.3.12$pred), ]
 
-png("NY-10y.png",width = 3500,height =2000,res = 400)
+png("NY-10y.png",width = 3500,height =3500,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.3.12$pred, #x is predicted risk from the 
@@ -586,7 +608,7 @@ data12y.5v%>%
 
 # Estimate actual risk
 
-vcal.5.12.RP <- flexsurvspline(Surv(year, cens) ~ rcs(risk.cll,3), data = data10y.5v, k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
+vcal.5.12.RP <- flexsurvspline(Surv(year, cens) ~ rcs(risk.cll,3), data = data12y.5v, k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")
 
 
 dat_cal.5.12 <- cbind.data.frame(
@@ -612,7 +634,7 @@ dat_cal.5.12 <- cbind.data.frame(
 
 dat_cal.5.12 <- dat_cal.5.12[order(dat_cal.5.12$pred), ]
 
-png("PIC-10y.png",width = 3500,height =2000,res = 400)
+png("PIC-10y.png",width = 3500,height =3500,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.5.12$pred, #x is predicted risk from the 
@@ -701,7 +723,7 @@ dat_cal.6.12 <- cbind.data.frame(
 
 dat_cal.6.12 <- dat_cal.6.12[order(dat_cal.6.12$pred), ]
 
-png("PIN-10y.png",width = 3500,height =2000,res = 400)
+png("PIN-10y.png",width = 3500,height =3500,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.6.12$pred, #x is predicted risk from the 
@@ -758,77 +780,29 @@ numsum_cph.6.12
 
 #---leave CamPalGN out----
 
-vcal.1.12.weak <- flexsurvspline(Surv(year, cens) ~risk.cll, data = data12y.1v, k=1,bknots = c(log(1.147159),log(9.040383)),scale = "odds")
+vcal.1.12.weak <- flexsurvspline(Surv(year, cens) ~lp.1.12, data = data12y.1v, k=1,bknots = c(log(1.147159),log(9.040383)),scale = "odds")
 
-data12y.1v$pred.act<-predict(vcal.1.12.weak,type = "survival",times = 10,newdata = data12y.1v)[[2]] #actual survival 
-data12y.1v$g_st<-log((1/data12y.1v$pred.act)-1)
-val.1.12<-lm(g_st~lp.1.12,data = data12y.1v)
-
-#lm(g_st~log((1/data12y.1v$pred)-1),data = data12y.1v)
-
-
-summary(val.1.12)
-
-calslope_summary.1.12 <- c(
-  "calibration slope" = val.1.12$coefficients[2],
-  "2.5 %"  = val.1.12$coefficients[2] - 1.96 * 0.01731,
-  "97.5 %" = val.1.12$coefficients[2] + 1.96 * 0.01731
-)
-calslope_summary.1.12
+vcal.1.12.weak$res[c("lp.1.12"), c("est","L95%","U95%")] 
 
 #---leave NYPUM out----
 
-vcal.3.12.weak <- flexsurvspline(Surv(year, cens) ~risk.cll, data = data12y.3v, k=1,bknots = c(log(0.8925394), log(9.511294)),scale = "odds")
+vcal.3.12.weak <- flexsurvspline(Surv(year, cens) ~lp.3.12, data = data12y.3v, k=1,bknots = c(log(0.8925394), log(9.511294)),scale = "odds")
 
-data12y.3v$pred.act<-predict(vcal.3.12.weak,type = "survival",times = 10,newdata = data12y.3v)[[2]] #actual survival 
-data12y.3v$g_st<-log((1/data12y.3v$pred.act)-1)
-val.3.12<-lm(g_st~lp.3.12,data = data12y.3v)
-
-summary(val.3.12)
-
-calslope_summary.3.12 <- c(
-  "calibration slope" = val.3.12$coefficients[2],
-  "2.5 %"  = val.3.12$coefficients[2] - 1.96 * 0.01887,
-  "97.5 %" = val.3.12$coefficients[2] + 1.96 * 0.01887
-)
-calslope_summary.3.12
+vcal.3.12.weak$res[c("lp.3.12"), c("est","L95%","U95%")]
 
 
 #---leave PICNICS out----
 
-vcal.5.12.weak <- flexsurvspline(Surv(year, cens) ~risk.cll, data = data12y.5v, k=1,bknots = c(log(0.1067762), log(9.943874)),scale = "odds")
+vcal.5.12.weak <- flexsurvspline(Surv(year, cens) ~lp.5.12, data = data12y.5v, k=1,bknots = c(log(0.1067762), log(9.943874)),scale = "odds")
 
-
-data12y.5v$pred.act<-predict(vcal.5.12.weak,type = "survival",times = 10,newdata = data12y.5v)[[2]] #actual survival 
-data12y.5v$g_st<-log((1/data12y.5v$pred.act)-1)
-val.5.12<-lm(g_st~lp.5.12,data = data12y.5v)
-
-summary(val.5.12)
-
-calslope_summary.5.12 <- c(
-  "calibration slope" = val.5.12$coefficients[2],
-  "2.5 %"  = val.5.12$coefficients[2] - 1.96 * 0.009372,
-  "97.5 %" = val.5.12$coefficients[2] + 1.96 * 0.009372
-)
-calslope_summary.5.12
+vcal.5.12.weak$res[c("lp.5.12"), c("est","L95%","U95%")]
 
 #---leave PINE out----
 
-vcal.6.12.weak <- flexsurvspline(Surv(year, cens) ~risk.cll, data = data12y.6v, k=1,bknots = c(log(0.5557837), log(9.596167)),scale = "odds")
+vcal.6.12.weak <- flexsurvspline(Surv(year, cens) ~lp.6.12, data = data12y.6v, k=1,bknots = c(log(0.5557837), log(9.596167)),scale = "odds")
 
+vcal.6.12.weak$res[c("lp.6.12"), c("est","L95%","U95%")]
 
-data12y.6v$pred.act<-predict(vcal.6.12.weak,type = "survival",times = 10,newdata = data12y.6v)[[2]] #actual survival 
-data12y.6v$g_st<-log((1/data12y.6v$pred.act)-1)
-val.6.12<-lm(g_st~lp.6.12,data = data12y.6v)
-
-summary(val.6.12)
-
-calslope_summary.6.12 <- c(
-  "calibration slope" = val.6.12$coefficients[2],
-  "2.5 %"  = val.6.12$coefficients[2] - 1.96 * 0.01169,
-  "97.5 %" = val.6.12$coefficients[2] + 1.96 * 0.01169
-)
-calslope_summary.6.12
 ```
 
 
@@ -836,20 +810,27 @@ calslope_summary.6.12
 
 #----CamPalGN-----
 
-model1.12.re<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal,data=data12y.1,k=1,bknots = c(log(1.147159),log(9.040383)),scale = "odds")  #change the knots position
 
-rcs.mod1.12<-as.data.frame(basis(model1.12.re$knots,log(10))) #basis spline
-data12y.1v$rcs1<-rcs.mod1.12[,2]
-data12y.1v$rcs2<-rcs.mod1.12[,3]
+vcal.1.12.weak
 
-log((1-obj.1.12$surv)/mean(1-data12y.1v$pred)) #ln mean O/E risk ratio 
+init.pars.1.12<-vcal.1.12.weak$res.t[,"est"]
 
-model1.12.re$res[c("gamma0", "gamma1", "gamma2"), "est"]
+#fitting a model with only one free parameter, and with an offset variable equal to the linear predictor of the original model
 
-data12y.1v$pred.re<-1/(1+exp(-10.9104500-0.5297541+1.6319907*data12y.1v$rcs1-0.9665124*data12y.1v$rcs2+data12y.1v$lp.1.12)) #change the knots position and s(lnt;r) but keep the linear predictor the same
+init.pars.1.12["lp.1.12"]<-1  #offset variable is the linear predictor and fixed the coefficient is one
+
+recal.large.1.12<-flexsurvspline(Surv(year, cens) ~lp.1.12, data = data12y.1v, k=1,
+                                 bknots = c(log(1.147159), log(9.040383)),scale = "odds",
+                                 inits=init.pars.1.12,
+                                 fixedpars=which(names(init.pars.1.12)=="lp.1.12")) #fixed slope =1
+
+recal.large.1.12$res[c("gamma0", "gamma1", "gamma2"), "est"]
+
+
+data12y.1v$pred.re<-1/(1+exp(-14.2969832+3.6228901*data12y.1v$rcs1+0.3616636*data12y.1v$rcs2+data12y.1v$lp.1.12)) #change the knots position and s(lnt;r) but keep the linear predictor the same
 
 (1-obj.1.12$surv)/mean(1-data12y.1v$pred.re) #Mean calibration improve
-#Before is (1-obj.1.12$surv)/mean(1-data12y.1v$pred), 0.59, now is 0.78
+#Before is (1-obj.1.12$surv)/mean(1-data12y.1v$pred), 0.59, now is 0.79
 
 data12y.1v$risk.re<-1-data12y.1v$pred.re
 
@@ -876,7 +857,7 @@ dat_cal.1.12.RP.re <- cbind.data.frame(
 
 dat_cal.1.12.RP.re <- dat_cal.1.12.RP.re[order(dat_cal.1.12.RP.re$pred), ]
 
-png("Cam-10y-re1.png",width = 3500,height =2000,res = 400)
+png("Cam-10y-re1.png",width = 3500,height =3500,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.1.12.RP.re$pred, #x is predicted risk from the 
@@ -926,20 +907,27 @@ numsum_cph.1.12.RP.re
 
 #----NYPUM-----
 
-model3.12.re<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal,data=data12y.3,k=1,bknots = c(log(0.8925394),log(9.511294)),scale = "odds")  #change the knots position
 
-rcs.mod3.12<-as.data.frame(basis(model3.12.re$knots,log(10))) #basis spline
-data12y.3v$rcs1<-rcs.mod3.12[,2]
-data12y.3v$rcs2<-rcs.mod3.12[,3]
+vcal.3.12.weak
 
-log((1-obj.3.12$surv)/mean(1-data12y.3v$pred)) #ln mean O/E risk ratio 
+init.pars.3.12<-vcal.3.12.weak$res.t[,"est"]
 
-model3.12.re$res[c("gamma0", "gamma1", "gamma2"), "est"]
+#fitting a model with only one free parameter, and with an offset variable equal to the linear predictor of the original model
 
-data12y.3v$pred.re<-1/(1+exp(-9.980246+0.2426892+1.511023*data12y.3v$rcs1-0.733772*data12y.3v$rcs2+data12y.3v$lp.3.12)) #change the knots position and s(lnt;r) but keep the linear predictor the same
+init.pars.3.12["lp.3.12"]<-1  #offset variable is the linear predictor and fixed the coefficient is one
+
+recal.large.3.12<-flexsurvspline(Surv(year, cens) ~lp.3.12, data = data12y.3v, k=1,
+                                 bknots = c(log(0.8925394), log(9.511294)),scale = "odds",
+                                 inits=init.pars.3.12,
+                                 fixedpars=which(names(init.pars.3.12)=="lp.3.12")) #fixed slope =1
+
+recal.large.3.12$res[c("gamma0", "gamma1", "gamma2"), "est"]
+
+
+data12y.3v$pred.re<-1/(1+exp(-10.7887734+1.9057403*data12y.3v$rcs1-0.7619664*data12y.3v$rcs2+data12y.3v$lp.3.12)) #change the knots position and s(lnt;r) but keep the linear predictor the same
 
 (1-obj.3.12$surv)/mean(1-data12y.3v$pred.re) #Mean calibration improve
-#Before is (1-obj.3.12$surv)/mean(1-data12y.3v$pred), 1.27, now is 1.21
+#Before is (1-obj.3.12$surv)/mean(1-data12y.3v$pred), 1.27, now is 0.94
 
 data12y.3v$risk.re<-1-data12y.3v$pred.re
 
@@ -966,7 +954,7 @@ dat_cal.3.12.RP.re <- cbind.data.frame(
 
 dat_cal.3.12.RP.re <- dat_cal.3.12.RP.re[order(dat_cal.3.12.RP.re$pred), ]
 
-png("NY-10y-re1.png",width = 3500,height =2000,res = 400)
+png("NY-10y-re1.png",width = 3500,height =3500,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.3.12.RP.re$pred, #x is predicted risk from the 
@@ -1014,186 +1002,6 @@ numsum_cph.3.12.RP.re <- c(
 )
 numsum_cph.3.12.RP.re
 
-#----PICNICS----
-
-model5.12.re<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal,data=data12y.5,k=1,bknots = c(log(0.1067762),log(9.943874)),scale = "odds")  #change the knots position
-
-rcs.mod5.12<-as.data.frame(basis(model5.12.re$knots,log(10))) #basis spline
-data12y.5v$rcs1<-rcs.mod5.12[,2]
-data12y.5v$rcs2<-rcs.mod5.12[,3]
-
-log((1-obj.5.12$surv)/mean(1-data12y.5v$pred)) #ln mean O/E risk ratio 
-
-model5.12.re$res[c("gamma0", "gamma1", "gamma2"), "est"]
-
-data12y.5v$pred.re<-1/(1+exp(-10.2478365-0.1813029+1.3102989*data12y.5v$rcs1-0.2546462*data12y.5v$rcs2+data12y.5v$lp.5.12)) #change the knots position and s(lnt;r) but keep the linear predictor the same
-
-(1-obj.5.12$surv)/mean(1-data12y.5v$pred.re) #Mean calibration improve
-#Before is 0.83, now is 0.89
-
-data12y.5v$risk.re<-1-data12y.5v$pred.re
-
-dat_cal.5.12.RP.re <- cbind.data.frame(
-  "obs" = 1 - predict(vcal.5.12.RP,
-                      type = "survival",
-                      times = 10,
-                      newdata = data12y.5v)[[2]], #1-s(t=4) to get the refitted model predicted risk
-  
-  "lower" = 1 - predict(vcal.5.12.RP,
-                        type = "survival",
-                        conf.int = T,
-                        times = 10,
-                        newdata = data12y.5v)[[4]],
-  
-  "upper" = 1 - predict(vcal.5.12.RP,
-                        type = "survival",
-                        conf.int = T,
-                        times = 10,
-                        newdata = data12y.5v)[[3]],
-  "pred" = data12y.5v$risk.re
-)
-
-
-dat_cal.5.12.RP.re <- dat_cal.5.12.RP.re[order(dat_cal.5.12.RP.re$pred), ]
-
-png("PIC-10y-re1.png",width = 3500,height =2000,res = 400)
-par(xaxs = "i", yaxs = "i", las = 1)
-plot(
-  x=dat_cal.5.12.RP.re$pred, #x is predicted risk from the 
-  y=dat_cal.5.12.RP.re$obs,
-  type = "l", 
-  lty = 1, 
-  xlim = c(0, 1),
-  ylim = c(0, 1), 
-  lwd = 2,
-  xlab = "Predicted risk from developed model with new boundary knots position and intercept",
-  ylab = "Predicted risk from refitted model",  
-  main = "Validation dataset is PICNICS",
-  bty = "n" #no box
-)
-
-lines(dat_cal.5.12.RP.re$pred, 
-      dat_cal.5.12.RP.re$lower, 
-      type = "l", 
-      lty = 2, 
-      lwd = 2)
-lines(dat_cal.5.12.RP.re$pred, 
-      dat_cal.5.12.RP.re$upper,
-      type = "l", 
-      lty = 2, 
-      lwd = 2)
-abline(0, 1, lwd = 2, lty = 2, col = 2)
-legend(0,1,
-        c("Ideal calibration",
-          "Calibration curve based on secondary Royston-Parmar model",
-          "95% confidence interval"),
-        col = c(2, 1, 1),
-        lty = c(2, 1, 2),
-        lwd = c(2, 2, 2),
-        bty = "n",
-        cex = 0.7)
-dev.off()
-
-# Numerical measures
-absdiff_cph.5.12.RP.re <- abs(dat_cal.5.12.RP.re$pred - dat_cal.5.12.RP.re$obs)
-
-numsum_cph.5.12.RP.re <- c(
-  "ICI" = mean(absdiff_cph.5.12.RP.re),
-  setNames(quantile(absdiff_cph.5.12.RP.re, c(0.5, 0.9)), c("E50", "E90")),
-  "Emax" = max(absdiff_cph.5.12.RP.re)
-)
-numsum_cph.5.12.RP.re
-
-
-#----PINE----
-
-model6.12.re<-flexsurvspline(Surv(year,cens)~age10+sex+mdsupdrs3.10+hybl+mmsebltotal,data=data12y.6,k=1,bknots = c(log(0.5557837),log(9.596167)),scale = "odds")  #change the knots position
-
-rcs.mod6.12<-as.data.frame(basis(model6.12.re$knots,log(10))) #basis spline
-data12y.6v$rcs1<-rcs.mod6.12[,2]
-data12y.6v$rcs2<-rcs.mod6.12[,3]
-
-log((1-obj.6.12$surv)/mean(1-data12y.6v$pred)) #ln mean O/E risk ratio 
-
-model6.12.re$res[c("gamma0", "gamma1", "gamma2"), "est"]
-
-data12y.6v$pred.re<-1/(1+exp(-15.6610870-0.1367301+1.4051660*data12y.6v$rcs1-0.8035063*data12y.6v$rcs2+data12y.6v$lp.6.12)) #change the knots position and s(lnt;r) but keep the linear predictor the same
-
-(1-obj.6.12$surv)/mean(1-data12y.6v$pred.re) #Mean calibration improve
-#Before is 0.87, now is 0.92
-
-data12y.6v$risk.re<-1-data12y.6v$pred.re
-
-dat_cal.6.12.RP.re <- cbind.data.frame(
-  "obs" = 1 - predict(vcal.6.12.RP,
-                      type = "survival",
-                      times = 10,
-                      newdata = data12y.6v)[[2]], #1-s(t=4) to get the refitted model predicted risk
-  
-  "lower" = 1 - predict(vcal.6.12.RP,
-                        type = "survival",
-                        conf.int = T,
-                        times = 10,
-                        newdata = data12y.6v)[[4]],
-  
-  "upper" = 1 - predict(vcal.6.12.RP,
-                        type = "survival",
-                        conf.int = T,
-                        times = 10,
-                        newdata = data12y.6v)[[3]],
-  "pred" = data12y.6v$risk.re
-)
-
-
-dat_cal.6.12.RP.re <- dat_cal.6.12.RP.re[order(dat_cal.6.12.RP.re$pred), ]
-
-png("PIN-10y-re1.png",width = 3500,height =2000,res = 400)
-par(xaxs = "i", yaxs = "i", las = 1)
-plot(
-  x=dat_cal.6.12.RP.re$pred, #x is predicted risk from the 
-  y=dat_cal.6.12.RP.re$obs,
-  type = "l", 
-  lty = 1, 
-  xlim = c(0, 1),
-  ylim = c(0, 1), 
-  lwd = 2,
-  xlab = "Predicted risk from developed model with new boundary knots position and intercept",
-  ylab = "Predicted risk from refitted model",  
-  main = "Validation dataset is PINE",
-  bty = "n" #no box
-)
-
-lines(dat_cal.6.12.RP.re$pred, 
-      dat_cal.6.12.RP.re$lower, 
-      type = "l", 
-      lty = 2, 
-      lwd = 2)
-lines(dat_cal.6.12.RP.re$pred, 
-      dat_cal.6.12.RP.re$upper,
-      type = "l", 
-      lty = 2, 
-      lwd = 2)
-abline(0, 1, lwd = 2, lty = 2, col = 2)
-legend("topleft",
-        c("Ideal calibration",
-          "Calibration curve based on secondary Royston-Parmar model",
-          "95% confidence interval"),
-        col = c(2, 1, 1),
-        lty = c(2, 1, 2),
-        lwd = c(2, 2, 2),
-        bty = "n",
-        cex = 0.8)
-dev.off()
-
-# Numerical measures
-absdiff_cph.6.12.RP.re <- abs(dat_cal.6.12.RP.re$pred - dat_cal.6.12.RP.re$obs)
-
-numsum_cph.6.12.RP.re <- c(
-  "ICI" = mean(absdiff_cph.6.12.RP.re),
-  setNames(quantile(absdiff_cph.6.12.RP.re, c(0.5, 0.9)), c("E50", "E90")),
-  "Emax" = max(absdiff_cph.6.12.RP.re)
-)
-numsum_cph.6.12.RP.re
 
 ```
 
@@ -1201,12 +1009,18 @@ numsum_cph.6.12.RP.re
 
 #-----CamPalGN-------
 
-summary(val.1.12)
 
-data12y.1v$pred.re.1<-1/(1+exp(-10.9104500-0.5297541-1.638+1.6319907*data12y.1v$rcs1-0.9665124*data12y.1v$rcs2+1.253*data12y.1v$lp.1.12)) 
+#by fitting a model with the linear predictor of the original model as a single predictor. The models were then updated by multiplying the linear predictor by the coefficient and adding the estimated intercept; the individual risks were then recalculated
+
+
+#vcal.1.12.weak 
+
+vcal.1.12.weak$res[c("gamma0", "gamma1", "gamma2","lp.1.12"), "est"]
+
+data12y.1v$pred.re.1<-1/(1+exp(-14.8343049+3.6298494*data12y.1v$rcs1+0.3289933*data12y.1v$rcs2+1.0731251*data12y.1v$lp.1.12)) 
 
 (1-obj.1.12$surv)/mean(1-data12y.1v$pred.re.1) #Mean calibration improve
-#Before is (1-obj.1.12$surv)/mean(1-data12y.1v$pred.re),from 0.79 to now 0.88
+#Before is (1-obj.1.12$surv)/mean(1-data12y.1v$pred.re),from 0.79 to now 0.80
 
 data12y.1v$risk.re.1<-1-data12y.1v$pred.re.1
 
@@ -1233,7 +1047,7 @@ dat_cal.1.12.RP.re.1 <- cbind.data.frame(
 
 dat_cal.1.12.RP.re.1 <- dat_cal.1.12.RP.re.1[order(dat_cal.1.12.RP.re.1$pred), ]
 
-png("Cam-10y-re2.png",width = 3500,height =2000,res = 400)
+png("Cam-10y-re2.png",width = 3500,height =3500,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.1.12.RP.re.1$pred, #x is predicted risk from the 
@@ -1285,12 +1099,15 @@ numsum_cph.1.12.RP.re.1
 
 #-----NYPUM----
 
-#summary(val.3.12)
+#vcal.3.12.weak 
 
-data12y.3v$pred.re.1<-1/(1+exp(-9.980246+0.2426892-0.402+1.511023*data12y.3v$rcs1-0.733772*data12y.3v$rcs2+1.287*data12y.3v$lp.3.12)) 
+vcal.3.12.weak$res[c("gamma0", "gamma1", "gamma2","lp.3.12"), "est"]
+
+
+data12y.3v$pred.re.1<-1/(1+exp(-12.0863269+1.9660011*data12y.3v$rcs1-0.8543255*data12y.3v$rcs2+1.1948319*data12y.3v$lp.3.12)) 
 
 (1-obj.3.12$surv)/mean(1-data12y.3v$pred.re.1) #Mean calibration improve
-#Before is (1-obj.3.12$surv)/mean(1-data12y.3v$pred.re) from 1.21 to 0.94
+#Before is (1-obj.3.12$surv)/mean(1-data12y.3v$pred.re) from 0.94 to 0.94
 
 data12y.3v$risk.re.1<-1-data12y.3v$pred.re.1
 
@@ -1317,7 +1134,7 @@ dat_cal.3.12.RP.re.1 <- cbind.data.frame(
 
 dat_cal.3.12.RP.re.1 <- dat_cal.3.12.RP.re.1[order(dat_cal.3.12.RP.re.1$pred), ]
 
-png("NY-10y-re2.png",width = 3500,height =2000,res = 400)
+png("NY-10y-re2.png",width = 3500,height =3500,res = 400)
 par(xaxs = "i", yaxs = "i", las = 1)
 plot(
   x=dat_cal.3.12.RP.re.1$pred, #x is predicted risk from the 
@@ -1366,177 +1183,13 @@ numsum_cph.3.12.RP.re.1 <- c(
 numsum_cph.3.12.RP.re.1
 
 
-
-#----PICNICS----
-
-summary(val.5.12)
-
-data12y.5v$pred.re.1<-1/(1+exp(-10.2478365-0.1813029-0.564+1.3102989*data12y.5v$rcs1-0.2546462*data12y.5v$rcs2+1.124*data12y.5v$lp.5.12))
-
-(1-obj.5.12$surv)/mean(1-data12y.5v$pred.re.1) #Mean calibration improve
-#Before 0.89 now 0.92
-
-data12y.5v$risk.re.1<-1-data12y.5v$pred.re.1
-
-dat_cal.5.12.RP.re.1 <- cbind.data.frame(
-  "obs" = 1 - predict(vcal.5.12.RP,
-                      type = "survival",
-                      times = 10,
-                      newdata = data12y.5v)[[2]], #1-s(t=4) to get the refitted model predicted risk
-  
-  "lower" = 1 - predict(vcal.5.12.RP,
-                        type = "survival",
-                        conf.int = T,
-                        times = 10,
-                        newdata = data12y.5v)[[4]],
-  
-  "upper" = 1 - predict(vcal.5.12.RP,
-                        type = "survival",
-                        conf.int = T,
-                        times = 10,
-                        newdata = data12y.5v)[[3]],
-  "pred" = data12y.5v$risk.re.1
-)
-
-
-dat_cal.5.12.RP.re.1 <- dat_cal.5.12.RP.re.1[order(dat_cal.5.12.RP.re.1$pred), ]
-
-png("PIC-10y-re2.png",width = 3500,height =2000,res = 400)
-par(xaxs = "i", yaxs = "i", las = 1)
-plot(
-  x=dat_cal.5.12.RP.re.1$pred, #x is predicted risk from the 
-  y=dat_cal.5.12.RP.re.1$obs,
-  type = "l", 
-  lty = 1, 
-  xlim = c(0, 1),
-  ylim = c(0, 1), 
-  lwd = 2,
-  xlab = "Predicted risk from developed model with new boundary knots position and intercept and coefficients",
-  ylab = "Predicted risk from refitted model",  
-  main = "Validation dataset is PICNICS",
-  bty = "n" #no box
-)
-
-lines(dat_cal.5.12.RP.re.1$pred, 
-      dat_cal.5.12.RP.re.1$lower, 
-      type = "l", 
-      lty = 2, 
-      lwd = 2)
-lines(dat_cal.5.12.RP.re.1$pred, 
-      dat_cal.5.12.RP.re.1$upper,
-      type = "l", 
-      lty = 2, 
-      lwd = 2)
-abline(0, 1, lwd = 2, lty = 2, col = 2)
-legend("topleft",
-        c("Ideal calibration",
-          "Calibration curve based on secondary Royston-Parmar model",
-          "95% confidence interval"),
-        col = c(2, 1, 1),
-        lty = c(2, 1, 2),
-        lwd = c(2, 2, 2),
-        bty = "n",
-        cex = 0.7)
-dev.off()
-
-# Numerical measures
-absdiff_cph.5.12.RP.re.1 <- abs(dat_cal.5.12.RP.re.1$pred - dat_cal.5.12.RP.re.1$obs)
-
-numsum_cph.5.12.RP.re.1 <- c(
-  "ICI" = mean(absdiff_cph.5.12.RP.re.1),
-  setNames(quantile(absdiff_cph.5.12.RP.re.1, c(0.5, 0.9)), c("E50", "E90")),
-  "Emax" = max(absdiff_cph.5.12.RP.re.1)
-)
-numsum_cph.5.12.RP.re.1
-
-#----PINE-----
-
-summary(val.6.12)
-
-data12y.6v$pred.re.1<-1/(1+exp(-15.6610870-0.1367301+1.546+1.4051660*data12y.6v$rcs1-0.8035063*data12y.6v$rcs2+0.843*data12y.6v$lp.6.12))
-
-(1-obj.6.12$surv)/mean(1-data12y.6v$pred.re.1) #Mean calibration improve
-#Before is 0.92 now 0.93
-
-data12y.6v$risk.re.1<-1-data12y.6v$pred.re.1
-
-dat_cal.6.12.RP.re.1 <- cbind.data.frame(
-  "obs" = 1 - predict(vcal.6.12.RP,
-                      type = "survival",
-                      times = 10,
-                      newdata = data12y.6v)[[2]], #1-s(t=4) to get the refitted model predicted risk
-  
-  "lower" = 1 - predict(vcal.6.12.RP,
-                        type = "survival",
-                        conf.int = T,
-                        times = 10,
-                        newdata = data12y.6v)[[4]],
-  
-  "upper" = 1 - predict(vcal.6.12.RP,
-                        type = "survival",
-                        conf.int = T,
-                        times = 10,
-                        newdata = data12y.6v)[[3]],
-  "pred" = data12y.6v$risk.re.1
-)
-
-
-dat_cal.6.12.RP.re.1 <- dat_cal.6.12.RP.re.1[order(dat_cal.6.12.RP.re.1$pred), ]
-
-png("PIN-10y-re2.png",width = 3500,height =2000,res = 400)
-par(xaxs = "i", yaxs = "i", las = 1)
-plot(
-  x=dat_cal.6.12.RP.re.1$pred, #x is predicted risk from the 
-  y=dat_cal.6.12.RP.re.1$obs,
-  type = "l", 
-  lty = 1, 
-  xlim = c(0, 1),
-  ylim = c(0, 1), 
-  lwd = 2,
-  xlab = "Predicted risk from developed model with new boundary knots position and intercept and coefficients",
-  ylab = "Predicted risk from refitted model",  
-  main = "Validation dataset is PINE",
-  bty = "n" #no box
-)
-
-lines(dat_cal.6.12.RP.re.1$pred, 
-      dat_cal.6.12.RP.re.1$lower, 
-      type = "l", 
-      lty = 2, 
-      lwd = 2)
-lines(dat_cal.6.12.RP.re.1$pred, 
-      dat_cal.6.12.RP.re.1$upper,
-      type = "l", 
-      lty = 2, 
-      lwd = 2)
-abline(0, 1, lwd = 2, lty = 2, col = 2)
-legend("topleft",
-        c("Ideal calibration",
-          "Calibration curve based on secondary Royston-Parmar model",
-          "95% confidence interval"),
-        col = c(2, 1, 1),
-        lty = c(2, 1, 2),
-        lwd = c(2, 2, 2),
-        bty = "n",
-        cex = 0.8)
-dev.off()
-
-# Numerical measures
-absdiff_cph.6.12.RP.re.1 <- abs(dat_cal.6.12.RP.re.1$pred - dat_cal.6.12.RP.re.1$obs)
-
-numsum_cph.6.12.RP.re.1 <- c(
-  "ICI" = mean(absdiff_cph.6.12.RP.re.1),
-  setNames(quantile(absdiff_cph.6.12.RP.re.1, c(0.5, 0.9)), c("E50", "E90")),
-  "Emax" = max(absdiff_cph.6.12.RP.re.1)
-)
-numsum_cph.6.12.RP.re.1
 ```
 
-```{r mean weak calibration after recalibration}
+```{r mean calibration after recalibration}
 
 #----CamPalGN----
 
-OE_t.1.12.re <- (1-obj.1.12$surv)/mean(1-data12y.1v$pred.re)
+OE_t.1.12.re <- (1-obj.1.12$surv)/mean(1-data12y.1v$pred.re.1)
 
 OE_summary.1.12.re <- c(
   "OE" = OE_t.1.12.re,
@@ -1546,23 +1199,10 @@ OE_summary.1.12.re <- c(
 
 OE_summary.1.12.re
 
-data12y.1v$lp.1.12.re<-as.vector(as.matrix(des_matr1.12) %*% cbind(1.253*coef1.12))
-
-val.1.12.re<-lm(g_st~lp.1.12.re,data = data12y.1v)
-
-summary(val.1.12.re)
-
-calslope_summary.1.12.re <- c(
-  "calibration slope" = val.1.12.re$coefficients[2],
-  "2.5 %"  =val.1.12.re$coefficients[2] - 1.96 *0.01381,
-  "97.5 %" = val.1.12.re$coefficients[2] + 1.96 *0.01381
-)
-
-calslope_summary.1.12.re
 
 #----NYPUM----
 
-OE_t.3.12.re <- (1-obj.3.12$surv)/mean(1-data12y.3v$pred.re)
+OE_t.3.12.re <- (1-obj.3.12$surv)/mean(1-data12y.3v$pred.re.1)
 
 OE_summary.3.12.re <- c(
   "OE" = OE_t.3.12.re,
@@ -1572,71 +1212,38 @@ OE_summary.3.12.re <- c(
 
 OE_summary.3.12.re
 
-data12y.3v$lp.3.12.re<-as.vector(as.matrix(des_matr3.12) %*% cbind(1.287*coef3.12))
 
-val.3.12.re<-lm(g_st~lp.3.12.re,data = data12y.3v)
 
-summary(val.3.12.re)
+```
 
-calslope_summary.3.12.re <- c(
-  "calibration slope" = val.3.12.re$coefficients[2],
-  "2.5 %"  =val.3.12.re$coefficients[2] - 1.96 *0.01467,
-  "97.5 %" = val.3.12.re$coefficients[2] + 1.96 *0.01467
-)
+```{r final model}
 
-calslope_summary.3.12.re
+#---update intercept CamPalGN----
 
-#-----PICNICS-----
+data12y.1v$pred.re<-1/(1+exp(-14.2969832+3.6228901*data12y.1v$rcs1+0.3616636*data12y.1v$rcs2+data12y.1v$lp.1.12)) 
 
-OE_t.5.12.re <- (1-obj.5.12$surv)/mean(1-data12y.5v$pred.re)
+round(model1.12$res[c("age10","sex","mdsupdrs3.10","hybl","mmsebltotal"),c("est","L95%","U95%")],2)
 
-OE_summary.5.12.re <- c(
-  "OE" = OE_t.5.12.re,
-  "2.5 %" = OE_t.5.12.re * exp(-qnorm(1 - alpha / 2) * sqrt(1 / obj.5.12$n.event)),
-  "97.5 %" = OE_t.5.12.re * exp(+qnorm(1 - alpha / 2) * sqrt(1 / obj.5.12$n.event))
-)
+model1.12
 
-OE_summary.5.12.re
+#---update intercept NYPUM----
 
-data12y.5v$lp.5.12.re<-as.vector(as.matrix(des_matr5.12) %*% cbind(1.124*coef5.12))
+recal.large.3.12$res[c("gamma0", "gamma1", "gamma2"), "est"]
 
-val.5.12.re<-lm(g_st~lp.5.12.re,data = data12y.5v)
+round(model3.12$res[c("age10","sex","mdsupdrs3.10","hybl","mmsebltotal"),c("est","L95%","U95%")],2)
 
-summary(val.5.12.re)
+model3.12
 
-calslope_summary.5.12.re <- c(
-  "calibration slope" = val.5.12.re$coefficients[2],
-  "2.5 %"  =val.5.12.re$coefficients[2] - 1.96 *0.008338,
-  "97.5 %" = val.5.12.re$coefficients[2] + 1.96 *0.008338
-)
+#---original PICNICS----
 
-calslope_summary.5.12.re
+round(model5.12$res[c("age10","sex","mdsupdrs3.10","hybl","mmsebltotal"),c("est","L95%","U95%")],2)
 
-#-----PINE-----
+round(model5.12$res[c("gamma0", "gamma1", "gamma2"), "est"],2)
 
-OE_t.6.12.re <- (1-obj.6.12$surv)/mean(1-data12y.6v$pred.re)
+#-----original PINE----
 
-OE_summary.6.12.re <- c(
-  "OE" = OE_t.6.12.re,
-  "2.5 %" = OE_t.6.12.re * exp(-qnorm(1 - alpha / 2) * sqrt(1 / obj.6.12$n.event)),
-  "97.5 %" = OE_t.6.12.re * exp(+qnorm(1 - alpha / 2) * sqrt(1 / obj.6.12$n.event))
-)
+round(model6.12$res[c("gamma0", "gamma1", "gamma2"), "est"],2)
 
-OE_summary.6.12.re
-
-data12y.6v$lp.6.12.re<-as.vector(as.matrix(des_matr6.12) %*% cbind(0.843*coef6.12))
-
-val.6.12.re<-lm(g_st~lp.6.12.re,data = data12y.6v)
-
-summary(val.6.12.re)
-
-calslope_summary.6.12.re <- c(
-  "calibration slope" = val.6.12.re$coefficients[2],
-  "2.5 %"  =val.6.12.re$coefficients[2] - 1.96 *0.04086,
-  "97.5 %" = val.6.12.re$coefficients[2] + 1.96 *0.04086
-)
-
-calslope_summary.6.12.re
-
+round(model6.12$res[c("age10","sex","mdsupdrs3.10","hybl","mmsebltotal"),c("est","L95%","U95%")],2)
 
 ```
