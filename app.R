@@ -63,7 +63,7 @@ ui <- fluidPage(
              <li> <strong> Enter the patient’s information. </strong></li>
              <li> <strong> Choose the prediction time (in years). </strong></li>
              
-             <li style='color:red;'>Models for CamPalGN<sup>1</sup>, NYPUM<sup>2</sup>, and PINE<sup>3</sup> are only validated at the 10-year time point. The model for PICNICS<sup>4</sup> is only validated at the 7-year time point. If you use these models to predict other time points, the results may not be reliable. We recommend that researchers further validate these models before applying them to other time points.</li>
+             <li style='color:red;'>Models for CamPalGN<sup>1</sup>, NYPUM<sup>2</sup>, PINE<sup>3</sup> and PICNICS<sup>4</sup> are only validated at the 10-year time point. If you use these models to predict other time points, the results may not be reliable. We recommend that researchers further validate these models before applying them to other time points.</li>
            </ul>")
   ),
   
@@ -112,23 +112,23 @@ server <- function(input, output, session) {
   
   model_list <- list(
     CamPalGN = list(
-      gamma = c(-11.44,1.63, -0.97),
-      beta = c(age = 1.19, sex = 0.05, updrs3 = 0.16, hy = 0.35, mmse = -0.16),
+      gamma = c(-14.30,3.62, 0.36),
+      beta = c(age = 1.20, sex = 0.05, updrs3 = 0.16, hy = 0.36, mmse = -0.15),
       knots = c(0.14, 1.82, 2.2)
     ),
     NYPUM = list(
-      gamma = c(-10.14,1.51, -0.73),
-      beta = c(age = 1.43, sex = -0.01, updrs3 = 0.15, hy = 0.50, mmse = -0.23),
+      gamma = c(-10.79,1.91, -0.76),
+      beta = c(age = 1.13, sex = -0.01, updrs3 = 0.12, hy = 0.40, mmse = -0.15),
       knots = c(-0.11, 1.83, 2.25)
     ), 
     PICNICS = list(
-      gamma = c(-12.93,1.40, -0.33),
-      beta = c(age = 1.14, sex = -0.21, updrs3 = 0.16, hy = 0.41, mmse = -0.11),
-      knots = c(-2.24, 1.51, 1.93)
+      gamma = c(-10.61,1.69, -0.38),
+      beta = c(age = 1.09, sex = -0.14, updrs3 = 0.13, hy = 0.41, mmse = -0.14),
+      knots = c(-0.58, 1.71, 2.26)
     ),
     PINE = list(
-      gamma = c(-16.35,0.76, -0.55),
-      beta = c(age = 1.41, sex = 0.08, updrs3 = 0.11, hy = 0.44, mmse = -0.07),
+      gamma = c(-16.04,0.77, -0.55),
+      beta = c(age = 1.40, sex = 0.08, updrs3 = 0.11, hy = 0.44, mmse = -0.08),
       knots = c(-2.24, 1.87, 2.30)
     )
   )
@@ -142,9 +142,7 @@ server <- function(input, output, session) {
   
   #Dynamic max prediction year
   
-  max_years <- reactive({
-    if (input$study == "PICNICS(UK)") 7 else 10
-  })
+  max_years <- reactive({10})
   
   #Dynamic prediction year input with max limit
   
