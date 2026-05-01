@@ -1,0 +1,1151 @@
+---
+title: "Competing risk IECV"
+output: html_document
+date: "2026-04-29"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Read me}
+
+#Need to run the prepare competing risk prediction, institution prediction baseline, prediction 7 years without ICICLE, prediction at 10 years file first
+
+#Above file is to get the data
+
+#Then need to run the prepare competing risk prediction file
+
+
+```
+
+```{r library}
+
+library(riskRegression)
+
+library(prodlim)
+
+```
+
+```{r predictRisk.function}
+
+predictRisk.function <- function(object, newdata, times, ...) {
+  object(newdata = newdata, times = times, ...)
+}
+``
+
+```
+
+
+```{r function to get the CIF for 7 year}
+
+tgrid <- seq(0, 7, by = 0.1)
+
+get_cif_7y <- function(i, data, fit1, fit2, tgrid) {
+  nd <- data[i, , drop = FALSE]
+  
+  nd_long <- nd[rep(1, length(tgrid)), ]
+  nd_long$year <- tgrid
+  rownames(nd_long) <- NULL
+  
+  # Get hazards directly
+  h1 <- predict(fit1, newdata = nd_long, type = "hazard")
+  h2 <- predict(fit2, newdata = nd_long, type = "hazard")
+  
+  # Total hazard
+  htot <- h1 + h2
+  
+  # Time increments
+  dt <- c(0, diff(tgrid))
+  
+  # Cumulative hazard
+  Htot <- cumsum(htot * dt)
+  
+  # Survival
+  S <- exp(-Htot)
+  
+  # Left-endpoint survival
+  S_left <- c(1, S[-length(S)])
+  
+  # CIF for cause 1
+  cif1 <- cumsum(S_left * h1 * dt)
+  
+  return(tail(cif1, 1))
+}
+
+
+
+```
+
+
+```{r predict CIF(t) FOR A WHOLE DATASET for 7 year}
+
+predict_cif_7y <- function(data, fit1, fit2, t = 7) {
+  tgrid <- seq(0, t, by = 0.1)
+  
+  sapply(
+    seq_len(nrow(data)),
+    get_cif_7y,
+    data  = data,
+    fit1  = fit1,
+    fit2  = fit2,
+    tgrid = tgrid
+  )
+}
+
+
+
+
+```
+
+
+```{r 7-year t-AUC}
+
+#---leave CamPalGN out----
+
+data7.1<-data7%>%
+  filter(clus!="CamPalGN")
+
+data7.1v<-data7%>%
+  filter(clus=="CamPalGN")
+
+# fit_inst and fit_death fitted on training data (data7.1)
+
+# Cause 1: Institutionalisation (cens == 1), treating death as censored
+fit_inst.7.1 <- stpm2(
+  Surv(year, ev1) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal,
+  data  = data7.1,
+  df    = 1,        # df=1 with scale="odds" ≈ your k=0 flexsurvspline model
+  scale = "odds"
+)
+
+# Cause 2: Death (cens == 2), treating institutionalisation as censored
+fit_death.7.1 <- stpm2(
+  Surv(year, ev2) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal,
+  data  = data7.1,
+  df    = 1,
+  scale = "odds"
+)
+
+
+# and get_cif_7y() is the function above
+
+
+score_7y.1v <- Score(
+  object = list("CIF model" = function(newdata, times, ...) {
+    predict_cif_7y(
+      data = newdata,
+      fit1 = fit_inst.7.1,
+      fit2 = fit_death.7.1,
+      t    = times
+    )
+  }),
+  formula = Hist(year, event) ~ 1,
+  data    = data7.1v,
+  cause   = 1,
+  times   = 7,
+  metrics = "AUC",
+  conf.int = TRUE
+)
+
+score_7y.1v$AUC$score
+
+#-----leave NYPUM out----
+
+data7.3<-data7%>%
+  filter(clus!="NYPUM")
+
+data7.3v<-data7%>%
+  filter(clus=="NYPUM")
+
+# Cause 1: Institutionalisation (cens == 1), treating death as censored
+fit_inst.7.3 <- stpm2(
+  Surv(year, ev1) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal,
+  data  = data7.3,
+  df    = 1,        # df=1 with scale="odds" ≈ your k=0 flexsurvspline model
+  scale = "odds"
+)
+
+# Cause 2: Death (cens == 2), treating institutionalisation as censored
+fit_death.7.3 <- stpm2(
+  Surv(year, ev2) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal,
+  data  = data7.3,
+  df    = 1,
+  scale = "odds"
+)
+
+
+score_7y.3v <- Score(
+  object = list("CIF model" = function(newdata, times, ...) {
+    predict_cif_7y(
+      data = newdata,
+      fit1 = fit_inst.7.3,
+      fit2 = fit_death.7.3,
+      t    = times
+    )
+  }),
+  formula = Hist(year, event) ~ 1,
+  data    = data7.3v,
+  cause   = 1,
+  times   = 7,
+  metrics = "AUC",
+  conf.int = TRUE
+)
+
+score_7y.3v$AUC$score # 0.59 (0.42,0.76)
+
+
+#-----leave ParkWest out----
+
+data7.4<-data7%>%
+  filter(clus!="ParkWest")
+
+data7.4v<-data7%>%
+  filter(clus=="ParkWest")
+
+# Cause 1: Institutionalisation (cens == 1), treating death as censored
+fit_inst.7.4 <- stpm2(
+  Surv(year, ev1) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal,
+  data  = data7.4,
+  df    = 1,        # df=1 with scale="odds" ≈ your k=0 flexsurvspline model
+  scale = "odds"
+)
+
+# Cause 2: Death (cens == 2), treating institutionalisation as censored
+fit_death.7.4 <- stpm2(
+  Surv(year, ev2) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal,
+  data  = data7.4,
+  df    = 1,
+  scale = "odds"
+)
+
+
+
+score_7y.4v <- Score(
+  object = list("CIF model" = function(newdata, times, ...) {
+    predict_cif_7y(
+      data = newdata,
+      fit1 = fit_inst.7.4,
+      fit2 = fit_death.7.4,
+      t    = times
+    )
+  }),
+  formula = Hist(year, event) ~ 1,
+  data    = data7.4v,
+  cause   = 1,
+  times   = 7,
+  metrics = "AUC",
+  conf.int = TRUE
+)
+
+score_7y.4v$AUC$score # 0.47 (0.32,0.63)
+
+#---leave PICNICS out----
+
+
+data7.5<-data7%>%
+  filter(clus!="PICNICS")
+
+data7.5v<-data7%>%
+  filter(clus=="PICNICS")
+
+# Cause 1: Institutionalisation (cens == 1), treating death as censored
+fit_inst.7.5 <- stpm2(
+  Surv(year, ev1) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal,
+  data  = data7.5,
+  df    = 1,        # df=1 with scale="odds" ≈ your k=0 flexsurvspline model
+  scale = "odds"
+)
+
+# Cause 2: Death (cens == 2), treating institutionalisation as censored
+fit_death.7.5 <- stpm2(
+  Surv(year, ev2) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal,
+  data  = data7.5,
+  df    = 1,
+  scale = "odds"
+)
+
+score_7y.5v <- Score(
+  object = list("CIF model" = function(newdata, times, ...) {
+    predict_cif_7y(
+      data = newdata,
+      fit1 = fit_inst.7.5,
+      fit2 = fit_death.7.5,
+      t    = times
+    )
+  }),
+  formula = Hist(year, event) ~ 1,
+  data    = data7.5v,
+  cause   = 1,
+  times   = 7,
+  metrics = "AUC",
+  conf.int = TRUE
+)
+
+score_7y.5v$AUC$score # 0.54 (0.40,0.68)
+
+#----leave PINE out----
+
+data7.6<-data7%>%
+  filter(clus!="PINE")
+
+data7.6v<-data7%>%
+  filter(clus=="PINE")
+
+# Cause 1: Institutionalisation (cens == 1), treating death as censored
+fit_inst.7.6 <- stpm2(
+  Surv(year, ev1) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal,
+  data  = data7.6,
+  df    = 1,        # df=1 with scale="odds" ≈ your k=0 flexsurvspline model
+  scale = "odds"
+)
+
+# Cause 2: Death (cens == 2), treating institutionalisation as censored
+fit_death.7.6 <- stpm2(
+  Surv(year, ev2) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal,
+  data  = data7.6,
+  df    = 1,
+  scale = "odds"
+)
+
+
+
+score_7y.6v <- Score(
+  object = list("CIF model" = function(newdata, times, ...) {
+    predict_cif_7y(
+      data = newdata,
+      fit1 = fit_inst.7.6,
+      fit2 = fit_death.7.6,
+      t    = times
+    )
+  }),
+  formula = Hist(year, event) ~ 1,
+  data    = data7.6v,
+  cause   = 1,
+  times   = 7,
+  metrics = "AUC",
+  conf.int = TRUE
+)
+
+score_7y.6v$AUC$score # 0.46 (0.35,0.57)
+
+
+
+
+
+```
+
+
+```{r 7-year calibration}
+
+#-----leave CamPalGN out----
+
+
+tgrid <- seq(0, 7, by = 0.1)
+
+data7.1v$pred7_cif <- sapply(
+  seq_len(nrow(data7.1v)),
+  get_cif_7y,
+  data  = data7.1v,
+  fit1  = fit_inst.7.1,   # models fitted on training data
+  fit2  = fit_death.7.1,
+  tgrid = tgrid
+)
+
+
+data7.1v <- data7.1v %>%
+  mutate(risk_group = ntile(pred7_cif, 10))
+
+# ── AJ estimator stratified by decile ────────────────────────────────────────
+# risk_group must be a factor for prodlim to stratify correctly
+aj_fit7.1 <- prodlim(Hist(year, event) ~ factor(risk_group), data = data7.1v)
+
+obs_cif_raw7.1 <- summary(aj_fit7.1, times = 7, cause = 1)
+
+# ── Extract the data frame from the summary object ───────────────────────────
+# summary.prodlim returns a list, not a data frame — extract $table
+obs_df7.1 <- as.data.frame(obs_cif_raw7.1) %>%
+  select(risk_group, 
+         obs_cif = cuminc,
+         lower_ci = lower,
+         upper_ci = upper)
+
+# ── Mean predicted per decile ─────────────────────────────────────────────────
+pred_df7.1 <- data7.1v %>%
+  group_by(risk_group) %>%
+  summarise(mean_pred = mean(pred7_cif), .groups = "drop")
+
+calib_df7.1 <- left_join(pred_df7.1, obs_df7.1, by = "risk_group")
+
+# ── Plot ──────────────────────────────────────────────────────────────────────
+
+
+ggplot(calib_df7.1, aes(x = mean_pred, y = obs_cif)) +
+  geom_abline(
+    slope = 1, intercept = 0,
+    linetype = "dashed", colour = "grey50"
+  ) +
+  geom_errorbar(
+    aes(ymin = lower_ci, ymax = upper_ci),
+    width = 0.015
+  ) +
+  geom_point(size = 3) +
+  coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
+  labs(
+    x = "Mean predicted 7-year CIF",
+    y = "Observed 7-year CIF (Aalen–Johansen)",
+    title = "Calibration — CamPalGN validation cohort"
+  ) +
+  theme_bw()
+
+
+
+
+#----levae NYPUM out----
+
+data7.3v$pred7_cif <- sapply(
+  seq_len(nrow(data7.3v)),
+  get_cif_7y,
+  data  = data7.3v,
+  fit1  = fit_inst.7.3,   # models fitted on training data
+  fit2  = fit_death.7.3,
+  tgrid = tgrid
+)
+
+
+data7.3v <- data7.3v %>%
+  mutate(risk_group = ntile(pred7_cif, 10))
+
+# ── AJ estimator stratified by decile ────────────────────────────────────────
+# risk_group must be a factor for prodlim to stratify correctly
+aj_fit7.3 <- prodlim(Hist(year, event) ~ factor(risk_group), data = data7.3v)
+
+obs_cif_raw7.3 <- summary(aj_fit7.3, times = 7, cause = 1)
+
+# ── Extract the data frame from the summary object ───────────────────────────
+# summary.prodlim returns a list, not a data frame — extract $table
+obs_df7.3 <- as.data.frame(obs_cif_raw7.3) %>%
+  select(
+    risk_group,
+    obs_cif  = cuminc,
+    lower_ci = lower,
+    upper_ci = upper
+)
+
+# ── Mean predicted per decile ─────────────────────────────────────────────────
+pred_df7.3 <- data7.3v %>%
+  group_by(risk_group) %>%
+  summarise(mean_pred = mean(pred7_cif), .groups = "drop")
+
+calib_df7.3 <- left_join(pred_df7.3, obs_df7.3, by = "risk_group")
+
+# ── Plot ──────────────────────────────────────────────────────────────────────
+
+ggplot(calib_df7.3, aes(x = mean_pred, y = obs_cif)) +
+  geom_abline(
+    slope = 1, intercept = 0,
+    linetype = "dashed", colour = "grey50"
+  ) +
+  geom_errorbar(
+    aes(ymin = lower_ci, ymax = upper_ci),
+    width = 0.015
+  ) +
+  geom_point(size = 3) +
+  coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
+  labs(
+    x = "Mean predicted 7-year CIF",
+    y = "Observed 7-year CIF (Aalen–Johansen)",
+    title = "Calibration — NYPUM validation cohort"
+  ) +
+  theme_bw()
+
+#-----ParkWest----
+
+data7.4v$pred7_cif <- sapply(
+  seq_len(nrow(data7.4v)),
+  get_cif_7y,
+  data  = data7.4v,
+  fit1  = fit_inst.7.4,   # models fitted on training data
+  fit2  = fit_death.7.4,
+  tgrid = tgrid
+)
+
+
+data7.4v <- data7.4v %>%
+  mutate(risk_group = ntile(pred7_cif, 10))
+
+# ── AJ estimator stratified by decile ────────────────────────────────────────
+# risk_group must be a factor for prodlim to stratify correctly
+aj_fit7.4 <- prodlim(Hist(year, event) ~ factor(risk_group), data = data7.4v)
+
+obs_cif_raw7.4 <- summary(aj_fit7.4, times = 7, cause = 1)
+
+# ── Extract the data frame from the summary object ───────────────────────────
+# summary.prodlim returns a list, not a data frame — extract $table
+obs_df7.4 <- as.data.frame(obs_cif_raw7.4) %>%
+  select(
+    risk_group,
+    obs_cif  = cuminc,
+    lower_ci = lower,
+    upper_ci = upper
+)
+
+# ── Mean predicted per decile ─────────────────────────────────────────────────
+pred_df7.4 <- data7.4v %>%
+  group_by(risk_group) %>%
+  summarise(mean_pred = mean(pred7_cif), .groups = "drop")
+
+calib_df7.4 <- left_join(pred_df7.4, obs_df7.4, by = "risk_group")
+
+# ── Plot ──────────────────────────────────────────────────────────────────────
+
+ggplot(calib_df7.4, aes(x = mean_pred, y = obs_cif)) +
+  geom_abline(
+    slope = 1, intercept = 0,
+    linetype = "dashed", colour = "grey50"
+  ) +
+  geom_errorbar(
+    aes(ymin = lower_ci, ymax = upper_ci),
+    width = 0.015
+  ) +
+  geom_point(size = 3) +
+  coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
+  labs(
+    x = "Mean predicted 7-year CIF",
+    y = "Observed 7-year CIF (Aalen–Johansen)",
+    title = "Calibration — ParkWest validation cohort"
+  ) +
+  theme_bw()
+
+
+#-----PICNICS-----
+
+data7.5v$pred7_cif <- sapply(
+  seq_len(nrow(data7.5v)),
+  get_cif_7y,
+  data  = data7.5v,
+  fit1  = fit_inst.7.5,   # models fitted on training data
+  fit2  = fit_death.7.5,
+  tgrid = tgrid
+)
+
+
+data7.5v <- data7.5v %>%
+  mutate(risk_group = ntile(pred7_cif, 10))
+
+# ── AJ estimator stratified by decile ────────────────────────────────────────
+# risk_group must be a factor for prodlim to stratify correctly
+aj_fit7.5 <- prodlim(Hist(year, event) ~ factor(risk_group), data = data7.5v)
+
+obs_cif_raw7.5 <- summary(aj_fit7.5, times = 7, cause = 1)
+
+# ── Extract the data frame from the summary object ───────────────────────────
+# summary.prodlim returns a list, not a data frame — extract $table
+obs_df7.5 <- as.data.frame(obs_cif_raw7.5) %>%
+  select(
+    risk_group,
+    obs_cif  = cuminc,
+    lower_ci = lower,
+    upper_ci = upper
+)
+
+# ── Mean predicted per decile ─────────────────────────────────────────────────
+pred_df7.5 <- data7.5v %>%
+  group_by(risk_group) %>%
+  summarise(mean_pred = mean(pred7_cif), .groups = "drop")
+
+calib_df7.5 <- left_join(pred_df7.5, obs_df7.5, by = "risk_group")
+
+# ── Plot ──────────────────────────────────────────────────────────────────────
+
+ggplot(calib_df7.5, aes(x = mean_pred, y = obs_cif)) +
+  geom_abline(
+    slope = 1, intercept = 0,
+    linetype = "dashed", colour = "grey50"
+  ) +
+  geom_errorbar(
+    aes(ymin = lower_ci, ymax = upper_ci),
+    width = 0.015
+  ) +
+  geom_point(size = 3) +
+  coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
+  labs(
+    x = "Mean predicted 7-year CIF",
+    y = "Observed 7-year CIF (Aalen–Johansen)",
+    title = "Calibration — PICNICS validation cohort"
+  ) +
+  theme_bw()
+
+
+
+
+#----PINE----
+
+data7.6v$pred7_cif <- sapply(
+  seq_len(nrow(data7.6v)),
+  get_cif_7y,
+  data  = data7.6v,
+  fit1  = fit_inst.7.6,   # models fitted on training data
+  fit2  = fit_death.7.6,
+  tgrid = tgrid
+)
+
+
+data7.6v <- data7.6v %>%
+  mutate(risk_group = ntile(pred7_cif, 10))
+
+# ── AJ estimator stratified by decile ────────────────────────────────────────
+# risk_group must be a factor for prodlim to stratify correctly
+aj_fit7.6 <- prodlim(Hist(year, event) ~ factor(risk_group), data = data7.6v)
+
+obs_cif_raw7.6 <- summary(aj_fit7.6, times = 7, cause = 1)
+
+# ── Extract the data frame from the summary object ───────────────────────────
+# summary.prodlim returns a list, not a data frame — extract $table
+obs_df7.6 <- as.data.frame(obs_cif_raw7.6) %>%
+  select(
+    risk_group,
+    obs_cif  = cuminc,
+    lower_ci = lower,
+    upper_ci = upper
+)
+
+# ── Mean predicted per decile ─────────────────────────────────────────────────
+pred_df7.6 <- data7.6v %>%
+  group_by(risk_group) %>%
+  summarise(mean_pred = mean(pred7_cif), .groups = "drop")
+
+calib_df7.6 <- left_join(pred_df7.6, obs_df7.6, by = "risk_group")
+
+# ── Plot ──────────────────────────────────────────────────────────────────────
+
+ggplot(calib_df7.6, aes(x = mean_pred, y = obs_cif)) +
+  geom_abline(
+    slope = 1, intercept = 0,
+    linetype = "dashed", colour = "grey50"
+  ) +
+  geom_errorbar(
+    aes(ymin = lower_ci, ymax = upper_ci),
+    width = 0.015
+  ) +
+  geom_point(size = 3) +
+  coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
+  labs(
+    x = "Mean predicted 7-year CIF",
+    y = "Observed 7-year CIF (Aalen–Johansen)",
+    title = "Calibration — PINE validation cohort"
+  ) +
+  theme_bw()
+
+```
+
+```{r predictRisk.function for 10 year}
+
+predictRisk.function <- function(object, newdata, times, ...) {
+  object(newdata = newdata, times = times, ...)
+}
+``
+
+```
+
+
+```{r function to get the CIF for 10 year}
+
+tgrid <- seq(0, 10, by = 0.1)
+
+get_cif_10y <- function(i, data, fit1, fit2, tgrid) {
+  nd <- data[i, , drop = FALSE]
+  
+  nd_long <- nd[rep(1, length(tgrid)), ]
+  nd_long$year <- tgrid
+  rownames(nd_long) <- NULL
+  
+  # Get hazards directly
+  h1 <- predict(fit1, newdata = nd_long, type = "hazard")
+  h2 <- predict(fit2, newdata = nd_long, type = "hazard")
+  
+  # Total hazard
+  htot <- h1 + h2
+  
+  # Time increments
+  dt <- c(0, diff(tgrid))
+  
+  # Cumulative hazard
+  Htot <- cumsum(htot * dt)
+  
+  # Survival
+  S <- exp(-Htot)
+  
+  # Left-endpoint survival
+  S_left <- c(1, S[-length(S)])
+  
+  # CIF for cause 1
+  cif1 <- cumsum(S_left * h1 * dt)
+  
+  return(tail(cif1, 1))
+}
+
+
+
+```
+
+
+```{r predict CIF(t) FOR A WHOLE DATASET for 10 years}
+
+predict_cif_10y <- function(data, fit1, fit2, t = 10) {
+  tgrid <- seq(0, t, by = 0.1)
+  
+  sapply(
+    seq_len(nrow(data)),
+    get_cif_10y,
+    data  = data,
+    fit1  = fit1,
+    fit2  = fit2,
+    tgrid = tgrid
+  )
+}
+
+
+```
+
+
+```{r 10-year AUC}
+
+#---leave CamPalGN out----
+
+data10.1<-data10%>%
+  filter(clus!="CamPalGN")
+
+data10.1v<-data10%>%
+  filter(clus=="CamPalGN")
+
+# fit_inst and fit_death fitted on training data (data10.1)
+
+# Cause 1: Institutionalisation (cens == 1), treating death as censored
+fit_inst.10.1 <- stpm2(
+  Surv(year, ev1) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal,
+  data  = data10.1,
+  df    = 1,        # df=1 with scale="odds" ≈ your k=0 flexsurvspline model
+  scale = "odds"
+)
+
+# Cause 2: Death (cens == 2), treating institutionalisation as censored
+fit_death.10.1 <- stpm2(
+  Surv(year, ev2) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal,
+  data  = data10.1,
+  df    = 1,
+  scale = "odds"
+)
+
+
+# and get_cif_10y() is the function above
+
+
+score_10y.1v <- Score(
+  object = list("CIF model" = function(newdata, times, ...) {
+    predict_cif_10y(
+      data = newdata,
+      fit1 = fit_inst.10.1,
+      fit2 = fit_death.10.1,
+      t    = times
+    )
+  }),
+  formula = Hist(year, event) ~ 1,
+  data    = data10.1v,
+  cause   = 1,
+  times   = 10,
+  metrics = "AUC",
+  conf.int = TRUE
+)
+
+score_10y.1v$AUC$score #0.77(0.68,0.87)
+
+
+#---leave NYPUM out----
+
+data10.3<-data10%>%
+  filter(clus!="NYPUM")
+
+data10.3v<-data10%>%
+  filter(clus=="NYPUM")
+
+# Cause 1: Institutionalisation (cens == 1), treating death as censored
+fit_inst.10.3 <- stpm2(
+  Surv(year, ev1) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal,
+  data  = data10.3,
+  df    = 1,        # df=1 with scale="odds" ≈ your k=0 flexsurvspline model
+  scale = "odds"
+)
+
+# Cause 2: Death (cens == 2), treating institutionalisation as censored
+fit_death.10.3 <- stpm2(
+  Surv(year, ev2) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal,
+  data  = data10.3,
+  df    = 1,
+  scale = "odds"
+)
+
+score_10y.3v <- Score(
+  object = list("CIF model" = function(newdata, times, ...) {
+    predict_cif_10y(
+      data = newdata,
+      fit1 = fit_inst.10.3,
+      fit2 = fit_death.10.3,
+      t    = times
+    )
+  }),
+  formula = Hist(year, event) ~ 1,
+  data    = data10.3v,
+  cause   = 1,
+  times   = 10,
+  metrics = "AUC",
+  conf.int = TRUE
+)
+
+score_10y.3v$AUC$score #0.76(0.66,0.85)
+
+
+#---leave PICNICS out----
+
+data10.5<-data10%>%
+  filter(clus!="PICNICS")
+
+data10.5v<-data10%>%
+  filter(clus=="PICNICS")
+
+# Cause 1: Institutionalisation (cens == 1), treating death as censored
+fit_inst.10.5 <- stpm2(
+  Surv(year, ev1) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal,
+  data  = data10.5,
+  df    = 1,        # df=1 with scale="odds" ≈ your k=0 flexsurvspline model
+  scale = "odds"
+)
+
+# Cause 2: Death (cens == 2), treating institutionalisation as censored
+fit_death.10.5 <- stpm2(
+  Surv(year, ev2) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal,
+  data  = data10.5,
+  df    = 1,
+  scale = "odds"
+)
+
+score_10y.5v <- Score(
+  object = list("CIF model" = function(newdata, times, ...) {
+    predict_cif_10y(
+      data = newdata,
+      fit1 = fit_inst.10.5,
+      fit2 = fit_death.10.5,
+      t    = times
+    )
+  }),
+  formula = Hist(year, event) ~ 1,
+  data    = data10.5v,
+  cause   = 1,
+  times   = 10,
+  metrics = "AUC",
+  conf.int = TRUE
+)
+
+score_10y.5v$AUC$score #0.74(0.68,0.81)
+
+
+#---leave PINE out----
+
+data10.6<-data10%>%
+  filter(clus!="PINE")
+
+data10.6v<-data10%>%
+  filter(clus=="PINE")
+
+# Cause 1: Institutionalisation (cens == 1), treating death as censored
+fit_inst.10.6 <- stpm2(
+  Surv(year, ev1) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal,
+  data  = data10.6,
+  df    = 1,        # df=1 with scale="odds" ≈ your k=0 flexsurvspline model
+  scale = "odds"
+)
+
+# Cause 2: Death (cens == 2), treating institutionalisation as censored
+fit_death.10.6 <- stpm2(
+  Surv(year, ev2) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal,
+  data  = data10.6,
+  df    = 1,
+  scale = "odds"
+)
+
+score_10y.6v <- Score(
+  object = list("CIF model" = function(newdata, times, ...) {
+    predict_cif_10y(
+      data = newdata,
+      fit1 = fit_inst.10.6,
+      fit2 = fit_death.10.6,
+      t    = times
+    )
+  }),
+  formula = Hist(year, event) ~ 1,
+  data    = data10.6v,
+  cause   = 1,
+  times   = 10,
+  metrics = "AUC",
+  conf.int = TRUE
+)
+
+score_10y.6v$AUC$score #0.64(0.56,0.71)
+
+```
+
+
+```{r calibration 10 years }
+
+#-----leave CamPalGN out----
+
+
+tgrid <- seq(0, 10, by = 0.1)
+
+data10.1v$pred10_cif <- sapply(
+  seq_len(nrow(data10.1v)),
+  get_cif_10y,
+  data  = data10.1v,
+  fit1  = fit_inst.10.1,   # models fitted on training data
+  fit2  = fit_death.10.1,
+  tgrid = tgrid
+)
+
+
+data10.1v <- data10.1v %>%
+  mutate(risk_group = ntile(pred10_cif, 10))
+
+# ── AJ estimator stratified by decile ────────────────────────────────────────
+# risk_group must be a factor for prodlim to stratify correctly
+aj_fit10.1 <- prodlim(Hist(year, event) ~ factor(risk_group), data = data10.1v)
+
+obs_cif_raw10.1 <- summary(aj_fit10.1, times = 10, cause = 1)
+
+# ── Extract the data frame from the summary object ───────────────────────────
+# summary.prodlim returns a list, not a data frame — extract $table
+obs_df10.1 <- as.data.frame(obs_cif_raw10.1) %>%
+  select(risk_group, 
+         obs_cif = cuminc,
+         lower_ci = lower,
+         upper_ci = upper)
+
+# ── Mean predicted per decile ─────────────────────────────────────────────────
+pred_df10.1 <- data10.1v %>%
+  group_by(risk_group) %>%
+  summarise(mean_pred = mean(pred10_cif), .groups = "drop")
+
+calib_df10.1 <- left_join(pred_df10.1, obs_df10.1, by = "risk_group")
+
+# ── Plot ──────────────────────────────────────────────────────────────────────
+
+
+ggplot(calib_df10.1, aes(x = mean_pred, y = obs_cif)) +
+  geom_abline(
+    slope = 1, intercept = 0,
+    linetype = "dashed", colour = "grey50"
+  ) +
+  geom_errorbar(
+    aes(ymin = lower_ci, ymax = upper_ci),
+    width = 0.015
+  ) +
+  geom_point(size = 3) +
+  coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
+  labs(
+    x = "Mean predicted 10-year CIF",
+    y = "Observed 10-year CIF (Aalen–Johansen)",
+    title = "Calibration — CamPalGN validation cohort"
+  ) +
+  theme_bw()
+
+
+#----levae NYPUM out----
+
+data10.3v$pred10_cif <- sapply(
+  seq_len(nrow(data10.3v)),
+  get_cif_10y,
+  data  = data10.3v,
+  fit1  = fit_inst.10.3,   # models fitted on training data
+  fit2  = fit_death.10.3,
+  tgrid = tgrid
+)
+
+
+data10.3v <- data10.3v %>%
+  mutate(risk_group = ntile(pred10_cif, 10))
+
+# ── AJ estimator stratified by decile ────────────────────────────────────────
+# risk_group must be a factor for prodlim to stratify correctly
+aj_fit10.3 <- prodlim(Hist(year, event) ~ factor(risk_group), data = data10.3v)
+
+obs_cif_raw10.3 <- summary(aj_fit10.3, times = 10, cause = 1)
+
+# ── Extract the data frame from the summary object ───────────────────────────
+# summary.prodlim returns a list, not a data frame — extract $table
+obs_df10.3 <- as.data.frame(obs_cif_raw10.3) %>%
+  select(
+    risk_group,
+    obs_cif  = cuminc,
+    lower_ci = lower,
+    upper_ci = upper
+)
+
+# ── Mean predicted per decile ─────────────────────────────────────────────────
+pred_df10.3 <- data10.3v %>%
+  group_by(risk_group) %>%
+  summarise(mean_pred = mean(pred10_cif), .groups = "drop")
+
+calib_df10.3 <- left_join(pred_df10.3, obs_df10.3, by = "risk_group")
+
+# ── Plot ──────────────────────────────────────────────────────────────────────
+
+ggplot(calib_df10.3, aes(x = mean_pred, y = obs_cif)) +
+  geom_abline(
+    slope = 1, intercept = 0,
+    linetype = "dashed", colour = "grey50"
+  ) +
+  geom_errorbar(
+    aes(ymin = lower_ci, ymax = upper_ci),
+    width = 0.015
+  ) +
+  geom_point(size = 3) +
+  coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
+  labs(
+    x = "Mean predicted 10-year CIF",
+    y = "Observed 10-year CIF (Aalen–Johansen)",
+    title = "Calibration — NYPUM validation cohort"
+  ) +
+  theme_bw()
+
+
+#-----PICNICS-----
+
+data10.5v$pred10_cif <- sapply(
+  seq_len(nrow(data10.5v)),
+  get_cif_10y,
+  data  = data10.5v,
+  fit1  = fit_inst.10.5,   # models fitted on training data
+  fit2  = fit_death.10.5,
+  tgrid = tgrid
+)
+
+
+data10.5v <- data10.5v %>%
+  mutate(risk_group = ntile(pred10_cif, 10))
+
+# ── AJ estimator stratified by decile ────────────────────────────────────────
+# risk_group must be a factor for prodlim to stratify correctly
+aj_fit10.5 <- prodlim(Hist(year, event) ~ factor(risk_group), data = data10.5v)
+
+obs_cif_raw10.5 <- summary(aj_fit10.5, times = 10, cause = 1)
+
+# ── Extract the data frame from the summary object ───────────────────────────
+# summary.prodlim returns a list, not a data frame — extract $table
+obs_df10.5 <- as.data.frame(obs_cif_raw10.5) %>%
+  select(
+    risk_group,
+    obs_cif  = cuminc,
+    lower_ci = lower,
+    upper_ci = upper
+)
+
+# ── Mean predicted per decile ─────────────────────────────────────────────────
+pred_df10.5 <- data10.5v %>%
+  group_by(risk_group) %>%
+  summarise(mean_pred = mean(pred10_cif), .groups = "drop")
+
+calib_df10.5 <- left_join(pred_df10.5, obs_df10.5, by = "risk_group")
+
+# ── Plot ──────────────────────────────────────────────────────────────────────
+
+ggplot(calib_df10.5, aes(x = mean_pred, y = obs_cif)) +
+  geom_abline(
+    slope = 1, intercept = 0,
+    linetype = "dashed", colour = "grey50"
+  ) +
+  geom_errorbar(
+    aes(ymin = lower_ci, ymax = upper_ci),
+    width = 0.015
+  ) +
+  geom_point(size = 3) +
+  coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
+  labs(
+    x = "Mean predicted 10-year CIF",
+    y = "Observed 10-year CIF (Aalen–Johansen)",
+    title = "Calibration — PICNICS validation cohort"
+  ) +
+  theme_bw()
+
+
+#---leave PINE out----
+
+#----PINE----
+
+data10.6v$pred10_cif <- sapply(
+  seq_len(nrow(data10.6v)),
+  get_cif_10y,
+  data  = data10.6v,
+  fit1  = fit_inst.10.6,   # models fitted on training data
+  fit2  = fit_death.10.6,
+  tgrid = tgrid
+)
+
+
+data10.6v <- data10.6v %>%
+  mutate(risk_group = ntile(pred10_cif, 10))
+
+# ── AJ estimator stratified by decile ────────────────────────────────────────
+# risk_group must be a factor for prodlim to stratify correctly
+aj_fit10.6 <- prodlim(Hist(year, event) ~ factor(risk_group), data = data10.6v)
+
+obs_cif_raw10.6 <- summary(aj_fit10.6, times = 10, cause = 1)
+
+# ── Extract the data frame from the summary object ───────────────────────────
+# summary.prodlim returns a list, not a data frame — extract $table
+obs_df10.6 <- as.data.frame(obs_cif_raw10.6) %>%
+  select(
+    risk_group,
+    obs_cif  = cuminc,
+    lower_ci = lower,
+    upper_ci = upper
+)
+
+# ── Mean predicted per decile ─────────────────────────────────────────────────
+pred_df10.6 <- data10.6v %>%
+  group_by(risk_group) %>%
+  summarise(mean_pred = mean(pred10_cif), .groups = "drop")
+
+calib_df10.6 <- left_join(pred_df10.6, obs_df10.6, by = "risk_group")
+
+# ── Plot ──────────────────────────────────────────────────────────────────────
+
+ggplot(calib_df10.6, aes(x = mean_pred, y = obs_cif)) +
+  geom_abline(
+    slope = 1, intercept = 0,
+    linetype = "dashed", colour = "grey50"
+  ) +
+  geom_errorbar(
+    aes(ymin = lower_ci, ymax = upper_ci),
+    width = 0.015
+  ) +
+  geom_point(size = 3) +
+  coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
+  labs(
+    x = "Mean predicted 10-year CIF",
+    y = "Observed 10-year CIF (Aalen–Johansen)",
+    title = "Calibration — PINE validation cohort"
+  ) +
+  theme_bw()
+
+
+```
+
+
+
+
+```{r try recalibrate 10 years}
+
+
+
+
+
+```

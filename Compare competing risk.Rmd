@@ -62,7 +62,19 @@ imp3.12y.new<-imp3.12y %>%
   left_join(data3 %>% select(id, datedeath,dateinstitution,enddateinstitutionalised,datevisitbl), by = "id")
 
 
+#---check imp3.12y.new with data3---
+
+#data3%>%
+#  filter(id==265)
+
+#imp3.12y.new%>%
+#  filter(id==265)
+
+
+
 data.comp10<-imp3.12y.new
+
+
 
 #---use dateinstitution if available---
 #----else use datedeath-----
@@ -73,6 +85,9 @@ data.comp10 <- data.comp10 %>%
 
 check.endate<-data.comp10%>%
   select(id, clus,dateinstitution, datedeath,  enddateinstitutionalised, end.date)
+
+
+
 
 ```
 
@@ -158,7 +173,7 @@ data.comp10$cens[data.comp10$dead == 2 & data.comp10$cens == 0] <- 2
 
 library(rstpm2)
 
-data.comp10$new.year
+#data.comp10$new.year
 
 
 # ── 1. Fit cause-specific models ──────────────────────────────────────────────
@@ -254,12 +269,195 @@ plot(
 
 
 
+
+
+
+```
+
+```{r 7-year}
+
+
+imp3.10y.new<-imp3.10y %>%
+  left_join(data3 %>% select(id, datedeath,dateinstitution,enddateinstitutionalised,datevisitbl), by = "id")
+
+data.comp7<-imp3.10y.new
+
+#---use dateinstitution if available---
+#----else use datedeath-----
+#----else use enddateinstitutionalised----
+
+data.comp7 <- data.comp7 %>%
+  mutate(end.date = coalesce(dateinstitution, datedeath, enddateinstitutionalised))
+
+check.endate<-data.comp7%>%
+  select(id, clus,dateinstitution, datedeath,  enddateinstitutionalised, end.date)
+
+
 ```
 
 
+```{r cut it 10 years for 7-year model}
 
 
-```{r how many died without institutionlisation}
+#----need to cut it 10 years----
+
+
+data.comp7$new.t<-as.Date(as.character(data.comp7$end.date ), format="%Y-%m-%d")-
+                as.Date(as.character(data.comp7$datevisitbl), format="%Y-%m-%d")
+
+
+
+data.comp7$new.t<-as.numeric(data.comp7$new.t)
+
+data.comp7$new.year<-data.comp7$new.t/365.25
+
+
+#--------Change censor 10y and 4.8y---------
+
+#--create 2 event----
+
+data.comp7$event <- 0
+
+data.comp7$event[!is.na(data.comp7$dateinstitution)] <- 1
+
+data.comp7$event[is.na(data.comp7$dateinstitution) & !is.na(data.comp7$datedeath)] <- 2
+
+check.event<-data.comp7%>%
+  select(id,clus,dateinstitution,datedeath,event)
+
+#Other study
+data.comp7$event[data.comp7$new.year>10]<-0 #0=right censored, 1=event 
+data.comp7$new.year[data.comp7$new.year>10]<-10 #If follow-up time>10 then change to 10 year
+
+
+
+```
+
+
+```{r check how many died before nursing home}
+
+
+data.comp7%>%
+  group_by(clus)%>%
+  summarise(n_total  = n(),
+            n_event2 = sum(event == 2),
+            prop_event2 = n_event2 / n_total)
+
+#38 29.5% CamPalGN
+#25 20.2% NYPUM
+#56 20.7% PICNIS
+#29 15.4% ParkWest
+#84 42%   PINE
+
+
+```
+
+
+```{r 7-year model compare}
+
+
+library(rstpm2)
+
+#data.comp10$new.year
+
+
+# ── 1. Fit cause-specific models ──────────────────────────────────────────────
+
+data.comp7$ev1 <- as.integer(data.comp7$event == 1)
+data.comp7$ev2 <- as.integer(data.comp7$event == 2)
+
+# Cause 1: Institutionalisation (cens == 1), treating death as censored
+fit_inst.7 <- stpm2(
+  Surv(new.year, ev1) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal+clus,
+  data  = data.comp7,
+  df    = 1,        # df=1 with scale="odds" ≈ your k=0 flexsurvspline model
+  scale = "odds"
+)
+
+# Cause 2: Death (cens == 2), treating institutionalisation as censored
+fit_death.7 <- stpm2(
+  Surv(new.year, ev2) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal+clus,
+  data  = data.comp7,
+  df    = 1,
+  scale = "odds"
+)
+
+
+
+
+```
+
+
+```{r plot to compare}
+
+
+# ── 2. Function to compute 10-year CIF for one patient ────────────────────────
+tgrid <- seq(0, 7, by = 0.1)
+
+get_cif_7y <- function(i, data, fit1, fit2, tgrid) {
+  nd <- data[i, , drop = FALSE]
+  
+  nd_long            <- nd[rep(1, length(tgrid)), ]
+  nd_long$new.year   <- tgrid   # <-- use the actual time variable name
+  rownames(nd_long)  <- NULL
+  
+  H1 <- predict(fit1, newdata = nd_long, type = "cumhaz")
+  H2 <- predict(fit2, newdata = nd_long, type = "cumhaz")
+  
+  S      <- exp(-(H1 + H2))
+  dH1    <- diff(c(0, H1))
+  S_left <- c(1, S[-length(S)])
+  cif1   <- cumsum(S_left * dH1)
+  
+  return(tail(cif1, 1))
+}
+
+# ── 3. Apply to all patients ───────────────────────────────────────────────────
+data.comp7$pred_7y_cif <- sapply(
+  seq_len(nrow(data.comp7)),
+  get_cif_7y,
+  data  = data.comp7,
+  fit1  = fit_inst.7,
+  fit2  = fit_death.7,
+  tgrid = tgrid
+)
+
+# ── 4. Naive 7-year failure probability (no competing risk adjustment) ────────
+nd_7y        <- data.comp7
+nd_7y$new.year   <- 7
+
+data.comp7$pred_7y_nocr <- predict(
+  fit_inst,
+  newdata = nd_7y,
+  type    = "fail"
+)
+
+# ── 5. Sanity check: CIF should always be <= naive probability ─────────────────
+stopifnot(all(data.comp7$pred_7y_cif <= data.comp7$pred_7y_nocr + 1e-6))
+
+# ── 6. Plot ────────────────────────────────────────────────────────────────────
+plot(
+  data.comp7$pred_7y_nocr,
+  data.comp7$pred_7y_cif,
+  xlab = "Predicted risk (cause-specific, no competing risk)",
+  ylab = "Predicted CIF (competing risks adjusted)",
+  main = "Impact of competing risks on 7-year institutionalisation risk",
+  pch  = 16,
+  col  = adjustcolor("steelblue", 0.5),
+  xlim = c(0, 1),
+  ylim = c(0, 1)
+)
+
+
+
+
+
+
+
+```
+
+
+```{r not run how many died without institutionlisation}
 
 check.dead<- imp3.new %>%
   left_join(data3 %>% select(id, datedeath), by = "id")

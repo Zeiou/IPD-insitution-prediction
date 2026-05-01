@@ -1,0 +1,757 @@
+---
+title: "prepare competing risk prediction"
+output: html_document
+date: "2026-04-29"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r library}
+
+library(dplyr)
+library(tidyr)
+library(Hmisc)
+library(jomo)
+library(haven)
+library(lubridate)
+library(finalfit)
+library(mice)
+library(mitools)
+library(rms)
+library(mitml)
+library(survminer)
+library(patchwork) #Arrange plot
+library(ggplot2)
+library(GGally)
+library(gridExtra)
+library(kableExtra)
+library(metafor)
+library(png)
+library(meta)
+library(grid)
+library(survival)
+library(flexsurv)
+library(pacman)
+
+```
+
+```{r data}
+#data<-read_dta("PICC institutionalisation.dta")
+
+#write.csv(data,"data.csv",row.names = F)  # need to be csv file, otherwise it fails
+datanew<-read.csv("data.csv")  #import data again
+
+
+#Update data: PCP66 is a male, baseline age is 74.8
+
+datanew$sex[datanew$originalid=="PCP66"]<-0  #male is 0
+datanew$agebl[datanew$originalid=="PCP66"]<-74.8
+
+
+
+#age at baseline, sex, smoking status, co-morbidity, living alone, type of accommodation, presence of hallucinations, presence of cognitive symptoms, falls, MDS-UPDRS part III score (converted from UPDRS part III as applicable), H&Y stage, MMSE score, Schwab and England scale
+
+#presence of hallucinations needs mdsupdrsbl102hallucinations and updrsblitem2thoughtdisorders
+
+#presence of cognitive symptoms needs mdsupdrsbl101cognitive and updrsblitem1intellectual
+
+
+data1<-datanew%>%
+  select(study,idpicc,originalid, agebl,agediagnosis, sex, smoking, charlsonbl,livesalonebl,accommodationbl,mdsupdrsbl102hallucinations,updrsblitem2thoughtdisorders,mdsupdrsbl101cognitive,updrsblitem1intellectual,updrsblitem13falling,mdsupdrspart3bltotalconvertedasa,hybl,mmsebltotal,sebl,dependentadlbl2,updrsblitem10dressing,updrsblitem9cuttingfood,updrsblitem11hygiene,updrsblitem15walking,mdsupdrsbl204eating,mdsupdrsbl205dressing,mdsupdrsbl206hygiene,mdsupdrsbl212walking,institutionalised,dateinstitution,datediagnosis,datevisitbl,losttofollowup,datedeath,datelost,enddateinstitutionalised,datelastknownalive)  
+
+
+#A<-data1%>%
+#  select(study,enddateinstitutionalised,dateinstitution,datedeath)
+
+
+#------Create index for hallucinations------
+
+data1$updrshallucinations<-ifelse(data1$mdsupdrsbl102hallucinations>0,1,0)  # 1=yes,0=no
+
+data1$updrsthoughtdisorders<-ifelse(data1$updrsblitem2thoughtdisorders>1,1,0)  # 1=yes (2-4),0=no (0-1)
+
+data1<-data1 %>%
+      mutate(hallucinationsindex=updrshallucinations)%>%           
+      mutate(hallucinationsindex=coalesce(hallucinationsindex,updrsthoughtdisorders)) #if updrshallucinations not find then use updrsthoughtdisorders
+
+
+#-----Create index for cognitive---------
+
+#summary(data1$mdsupdrsbl101cognitive)
+#summary(data1$updrsblitem2thoughtdisorders)
+
+
+data1$mdsupdrsbl101cognitive[data1$mdsupdrsbl101cognitive>1]<-1     
+data1$updrsblitem1intellectual[data1$updrsblitem1intellectual>1]<-1
+data1<-data1 %>%
+      mutate(cognitiveindex=mdsupdrsbl101cognitive)%>%           
+      mutate(cognitiveindex=coalesce(cognitiveindex,updrsblitem1intellectual))  # 0=no,1=yes
+
+
+#table(data$study,data$mdsupdrsbl101cognitive)
+#table(data$study,data$updrsblitem1intellectual)
+
+#-------------create index for falls-----------
+
+data1$updrsblitem13falling[data1$updrsblitem13falling>1&!is.na(data1$updrsblitem13falling)]<-1
+
+#summary(data1$updrsblitem13falling)
+
+
+#----Create smoking----
+
+data1$smoking[data1$smoking<3&!is.na(data1$smoking)]<-1  #Ever smoker
+data1$smoking[data1$smoking==3&!is.na(data1$smoking)]<-0  #Never smoker
+#summary(data1$smoking)
+
+
+
+#-----Create activities----
+
+#table(data1$updrsblitem15walking) there is not 4 in PICC data, don't need to change updrs walking
+
+data1$updrsblitem15walking[data1$updrsblitem15walking==4]<-3
+
+#table(data1$mdsupdrsbl212walking) 18 patients have 3 and 2 patients have 4
+
+data1$mdsupdrsbl212walking[data1$mdsupdrsbl212walking==3]<-2
+data1$mdsupdrsbl212walking[data1$mdsupdrsbl212walking==4]<-3
+
+#table(data1$mdsupdrsbl212walking) 
+
+data1<-data1%>%
+  mutate(mdsactivities=mdsupdrsbl205dressing+mdsupdrsbl204eating+mdsupdrsbl206hygiene+mdsupdrsbl212walking)
+
+#table(data1$mdsactivities)
+
+
+data1<-data1%>%
+  mutate(updractivities=updrsblitem10dressing+updrsblitem11hygiene+updrsblitem9cuttingfood+updrsblitem15walking)
+
+#table(data1$updractivities)
+
+
+data1<-data1 %>%
+      mutate(activities=mdsactivities)%>%           
+      mutate(activities=coalesce(activities,updractivities))  
+
+#table(data1$activities)
+
+#A<-data1%>%
+# filter(study=="PINE" & is.na(activities))
+
+
+#---Redefine Sebl---
+
+table(data1$study,data1$sebl)  #1 in PINE is 65, 3 in NYPUM and 9 in PINE is 85, 14 in NYPUM and 28 in PINE is 95, 2 in PINE is 100
+
+data1$sebl[data1$sebl==65]<-60
+data1$sebl[data1$sebl==85]<-80
+data1$sebl[data1$sebl==95]<-90
+data1$sebl[data1$sebl==98]<-100
+
+#-----Factor---
+
+
+data1$study<-factor(data1$study,
+                    levels = c(1,2,3,4,5,6),
+                    labels= c("CamPalGN","ICICLE","NYPUM","ParkWest","PICNICS","PINE"))
+
+summary(data1$study)  
+
+
+data1$sex<-factor(data1$sex,
+                  levels = c(0,1),
+                  labels = c("male","female"))
+
+
+data1$smoking <- factor(data1$smoking, 
+                        levels=c(0,1),
+                        labels=c("Never smoker", "Ever smoker"))
+
+
+data1$livesalonebl<-factor(data1$livesalonebl,
+                           levels=c(0,1),
+                           labels = c("lives alone","lives with other(s)"))
+
+
+data1$fall<-factor(data1$updrsblitem13falling,
+                   levels = c(0,1),
+                   labels = c("no","yes")) 
+
+
+
+data1$hallucinationsindex<-factor(data1$hallucinationsindex,
+                                  levels = c(0,1),
+                                  labels = c("no","yes"))  
+
+
+data1$cognitiveindex<-factor(data1$cognitiveindex,
+                            levels = c(0,1),
+                            labels = c("no","yes"))
+
+
+
+data1$accommodationbl<-factor(data1$accommodationbl,
+                              levels = c(1,2,3,4),
+                              labels = c("At home","Nursing home","Other","Sheltered housing")) 
+
+
+
+data1$dependentadlbl2<-factor(data1$dependentadlbl2,
+                              levels = c(0,1),
+                              labels = c("independency","dependency")) #Is it?
+
+
+
+
+
+```
+
+
+```{r follow-up}
+
+data1<-data1 %>%
+  mutate(t=dateinstitution)%>%           
+  mutate(t=coalesce(t,enddateinstitutionalised))
+
+sum(is.na(data1$t)) #37 missing, patients do not have date of institution/ end date of institution 
+
+#A<-data1%>%
+#  filter(is.na(t))%>%
+#  select(study,idpicc,originalid, institutionalised,enddateinstitutionalised,datelost,datedeath)
+
+#table(A$study)
+
+
+#sum(A$institutionalised,na.rm = T)  #35 patients know entered in the nursing home but don't know when
+
+#2 patients in CamPalGN without any information of instituionlisation record
+
+
+35+2+26
+
+#Remove those patients with missing t, 1109-38=1071
+
+data1<-data1%>%
+  filter(!is.na(t)) #now 1072 patients in data
+
+data1$cens<-ifelse(is.na(data1$dateinstitution),0,1)  #0=right censored, 1=event 
+
+data1$tt<-as.Date(as.character(data1$t), format="%Y-%m-%d")-
+                as.Date(as.character(data1$datevisitbl), format="%Y-%m-%d")
+
+data1$tt<-as.numeric(data1$tt)
+
+data1$year<-data1$tt/365.25
+
+
+#A<-data1%>%
+#  filter(data1$tt<=0) 
+
+#table(A$study)  #To see how many in different study
+
+#Only keep those follow-up time >0
+data1<-data1%>%
+  filter(data1$tt>0) #1046 removed 26 patients 
+
+
+#-------Change for CamPalGN and PICNICS---
+
+#idpicc==118 CamPalGN originalid==73, have an institutionalisation date of 21 Sep 2008
+
+data1 <- data1 %>%
+  mutate(
+    dateinstitution = if_else(
+      idpicc == 118,
+      "2008-09-21",
+      dateinstitution
+    )
+  )
+
+
+
+
+#----CamPalGN and PICNICS, if patient has the date of death, then change the endateinstitutionalised to date of death
+
+
+data1 <- data1 %>%
+  mutate(
+    enddateinstitutionalised = if_else(
+      study %in% c("CamPalGN", "PICNICS") & 
+      is.na(dateinstitution) & 
+      !is.na(datedeath),
+      datedeath,
+      enddateinstitutionalised
+    )
+  )
+
+
+
+#----compute the follow-up time again---
+
+
+
+data1<-data1 %>%
+  mutate(t=dateinstitution)%>%           
+  mutate(t=coalesce(t,enddateinstitutionalised))
+
+
+data1$tt<-as.Date(as.character(data1$t), format="%Y-%m-%d")-
+                as.Date(as.character(data1$datevisitbl), format="%Y-%m-%d")
+
+data1$tt<-as.numeric(data1$tt)
+
+data1$year<-data1$tt/365.25
+
+
+#--------Change censor 10y and 4.8y---------
+
+data3<-data1 #create data3
+
+#ICICLE study
+#data3$cens[data3$study=="ICICLE" & data3$year>4.8]<-0 #0=right censored, 1=event 
+#data3$year[data3$study=="ICICLE" & data3$year>4.8]<-4.8 #If follow-up time>4.8 then change to 4.8 year
+#Other study
+#data3$cens[data3$study!="ICICLE" & data3$year>10]<-0 #0=right censored, 1=event 
+#data3$year[data3$study!="ICICLE" & data3$year>10]<-10 #If follow-up time>10 then change to 10 year
+
+
+#table(data3$study)
+
+```
+
+
+```{r check how many died before institutionlisation}
+
+
+#--------Change censor 10y and 4.8y---------
+
+data3<-data1 #create data3
+
+
+#--create 2 event----
+
+data3$event <- 0
+
+data3$event[!is.na(data3$dateinstitution)] <- 1
+
+data3$event[is.na(data3$dateinstitution) & !is.na(data3$datedeath)] <- 2
+
+data3$event[data3$study!="ICICLE" & data3$year>10]<-0 #0=right censored
+
+data3$event[data3$study=="ICICLE" & data3$year>4.8]<-0 
+
+
+data3%>%
+  group_by(study)%>%
+  summarise(n_total  = n(),
+            n_event2 = sum(event == 2),
+            prop_event2 = n_event2 / n_total)
+
+
+
+#38 29.5% CamPalGN
+#20 14.8% ICICLE
+#25 20.2% NYPUM
+#29 15.4% ParkWest
+#56 20.7% PICNIS
+#84 42%   PINE
+
+
+#institutionlisation
+
+data3%>%
+  group_by(study)%>%
+  summarise(n_total  = n(),
+            n_event2 = sum(event == 1),
+            prop_event2 = n_event2 / n_total)
+
+
+#27 20.9% CamPalGN
+#9   6.7% ICICLE
+#53 42.7% NYPUM
+#29 15.4% ParkWest
+#72 26.7% PICNIS
+#63 31.5%   PINE
+
+
+```
+
+
+```{r data merge}
+
+imp3.new <- read.csv("imp3.new.csv")
+
+
+imp3.new10<-imp3.new%>%
+  filter(clus!="ICICLE")
+
+
+#----choose the time varibale that needs to update----
+
+colnames(data3)
+
+time.data<-data3[,c(1,2,46,47,48,49,50)]
+
+#----choose variables that kept----
+
+colnames(imp3.new10)
+
+imp3<-imp3.new10[,c(1,2,3,4,5,6,7,8,10,14,15,18,19)]
+
+colnames(time.data)
+colnames(imp3)
+
+
+#-----create one update data---
+
+
+data.update<-imp3%>%
+  left_join(time.data, by = "idpicc")
+
+
+
+
+```
+
+```{r 7 years data pre}
+
+colnames(data.update)
+
+#---the maximum year is 7 and if any event after 7 should be censor---
+
+data7 <- data.update %>%
+  mutate(
+    event = if_else(year > 7, 0, event),
+    year  = pmin(year, 7)
+  )
+
+```
+
+```{r develop the 7-year model}
+
+
+library(rstpm2)
+
+
+# ── 1. Fit cause-specific models ──────────────────────────────────────────────
+
+data7$ev1 <- as.integer(data7$event == 1)
+data7$ev2 <- as.integer(data7$event == 2)
+
+# Cause 1: Institutionalisation (cens == 1), treating death as censored
+fit_inst.7 <- stpm2(
+  Surv(year, ev1) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal+clus,
+  data  = data7,
+  df    = 1,        # df=1 with scale="odds" ≈ your k=0 flexsurvspline model
+  scale = "odds"
+)
+
+# Cause 2: Death (cens == 2), treating institutionalisation as censored
+fit_death.7 <- stpm2(
+  Surv(year, ev2) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal+clus,
+  data  = data7,
+  df    = 1,
+  scale = "odds"
+)
+
+
+```
+
+```{r not run code1}
+
+# ── 2. Function to compute 10-year CIF for one patient ────────────────────────
+tgrid <- seq(0, 7, by = 0.1)
+
+get_cif_7y <- function(i, data, fit1, fit2, tgrid) {
+  nd <- data[i, , drop = FALSE]
+  
+  nd_long            <- nd[rep(1, length(tgrid)), ]
+  nd_long$year   <- tgrid   # <-- use the actual time variable name
+  rownames(nd_long)  <- NULL
+  
+  H1 <- predict(fit1, newdata = nd_long, type = "cumhaz")
+  H2 <- predict(fit2, newdata = nd_long, type = "cumhaz")
+  
+  S      <- exp(-(H1 + H2))
+  dH1    <- diff(c(0, H1))
+  S_left <- c(1, S[-length(S)])
+  cif1   <- cumsum(S_left * dH1)
+  
+  return(tail(cif1, 1))
+}
+
+# ── 3. Apply to all patients ───────────────────────────────────────────────────
+data7$pred_7y_cif <- sapply(
+  seq_len(nrow(data7)),
+  get_cif_7y,
+  data  = data7,
+  fit1  = fit_inst.7,
+  fit2  = fit_death.7,
+  tgrid = tgrid
+)
+
+# ── 4. Naive 7-year failure probability (no competing risk adjustment) ────────
+nd_7y        <- data7
+nd_7y$year   <- 7
+
+data7$pred_7y_nocr <- predict(
+  fit_inst.7,
+  newdata = nd_7y,
+  type    = "fail"
+)
+
+# ── 5. Sanity check: CIF should always be <= naive probability ─────────────────
+stopifnot(all(data7$pred_7y_cif <= data7$pred_7y_nocr + 1e-6))
+
+# ── 6. Plot ────────────────────────────────────────────────────────────────────
+plot(
+  data7$pred_7y_nocr,
+  data7$pred_7y_cif,
+  xlab = "Predicted risk (cause-specific, no competing risk)",
+  ylab = "Predicted CIF (competing risks adjusted)",
+  main = "Impact of competing risks on 7-year institutionalisation risk",
+  pch  = 16,
+  col  = adjustcolor("steelblue", 0.5),
+  xlim = c(0, 1),
+  ylim = c(0, 1)
+)
+
+
+par(pty = "s")
+plot(
+  data7$pred_7y_nocr,
+  data7$pred_7y_cif,
+  xlab = "Predicted risk (cause-specific, no competing risk)",
+  ylab = "Predicted CIF (competing risks adjusted)",
+  main = "Impact of competing risks on 7-year institutionalisation risk",
+  pch  = 16,
+  col  = adjustcolor("steelblue", 0.5),
+  xlim = c(0, 1),
+  ylim = c(0, 1)
+)
+abline(0, 1, col = "red", lwd = 2, lty = 2)
+
+
+
+
+```
+
+
+```{r run code 2}
+
+# ── 2. compute 7-year CIF for all patients ────────────────────────
+
+tgrid <- seq(0, 7, by = 0.1)
+
+get_cif_7y <- function(i, data, fit1, fit2, tgrid) {
+  nd <- data[i, , drop = FALSE]
+  
+  nd_long <- nd[rep(1, length(tgrid)), ]
+  nd_long$year <- tgrid
+  rownames(nd_long) <- NULL
+  
+  # Get hazards directly
+  h1 <- predict(fit1, newdata = nd_long, type = "hazard")
+  h2 <- predict(fit2, newdata = nd_long, type = "hazard")
+  
+  # Total hazard
+  htot <- h1 + h2
+  
+  # Time increments
+  dt <- c(0, diff(tgrid))
+  
+  # Cumulative hazard
+  Htot <- cumsum(htot * dt)
+  
+  # Survival
+  S <- exp(-Htot)
+  
+  # Left-endpoint survival
+  S_left <- c(1, S[-length(S)])
+  
+  # CIF for cause 1
+  cif1 <- cumsum(S_left * h1 * dt)
+  
+  return(tail(cif1, 1))
+}
+
+data7$pred_7y_cif <- sapply(
+  seq_len(nrow(data7)),
+  get_cif_7y,
+  data  = data7,
+  fit1  = fit_inst.7,
+  fit2  = fit_death.7,
+  tgrid = tgrid
+)
+
+
+# ── 2. Naive 7-year failure probability (no competing risk adjustment) ────────
+nd_7y        <- data7
+nd_7y$year   <- 7
+
+data7$pred_7y_nocr <- predict(
+  fit_inst.7,
+  newdata = nd_7y,
+  type    = "fail"
+)
+
+stopifnot(all(data7$pred_7y_cif >= 0))
+stopifnot(all(data7$pred_7y_cif <= 1))
+
+H1 <- predict(fit_inst.7, type="cumhaz", newdata=data7)
+H2 <- predict(fit_death.7, type="cumhaz", newdata=data7)
+
+S  <- exp(-(H1 + H2))
+overall_event_prob <- 1 - S
+
+
+
+
+# ── 3. Plot ────────────────────────────────────────────────────────────────────
+
+par(pty = "s")
+plot(
+  data7$pred_7y_nocr,
+  data7$pred_7y_cif,
+  xlab = "Predicted risk (cause-specific, no competing risk)",
+  ylab = "Predicted CIF (competing risks adjusted)",
+  main = "Impact of competing risks on 7-year institutionalisation risk",
+  pch  = 16,
+  col  = adjustcolor("steelblue", 0.5),
+  xlim = c(0, 1),
+  ylim = c(0, 1)
+)
+abline(0, 1, col = "red", lwd = 2, lty = 2)
+
+
+```
+
+
+
+```{r 10 years data pre}
+
+colnames(data.update)
+
+
+data10<-data.update %>%
+  filter(clus=="CamPalGN" |clus=="NYPUM"|clus=="PICNICS"|clus=="PINE" )
+
+
+```
+
+```{r develop 10-year model}
+
+# ── 1. Fit cause-specific models ──────────────────────────────────────────────
+
+data10$ev1 <- as.integer(data10$event == 1)
+data10$ev2 <- as.integer(data10$event == 2)
+
+# Cause 1: Institutionalisation (cens == 1), treating death as censored
+fit_inst.10 <- stpm2(
+  Surv(year, ev1) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal+clus,
+  data  = data10,
+  df    = 1,        # df=1 with scale="odds" ≈ your k=0 flexsurvspline model
+  scale = "odds"
+)
+
+# Cause 2: Death (cens == 2), treating institutionalisation as censored
+fit_death.10 <- stpm2(
+  Surv(year, ev2) ~ age10 + sex + mdsupdrs3.10 + hybl + mmsebltotal+clus,
+  data  = data10,
+  df    = 1,
+  scale = "odds"
+)
+
+```
+
+```{r compare 10 year with without competing risk}
+
+
+tgrid <- seq(0, 10, by = 0.1)
+
+get_cif_10y <- function(i, data, fit1, fit2, tgrid) {
+  nd <- data[i, , drop = FALSE]
+  
+  nd_long <- nd[rep(1, length(tgrid)), ]
+  nd_long$year <- tgrid
+  rownames(nd_long) <- NULL
+  
+  # Get hazards directly
+  h1 <- predict(fit1, newdata = nd_long, type = "hazard")
+  h2 <- predict(fit2, newdata = nd_long, type = "hazard")
+  
+  # Total hazard
+  htot <- h1 + h2
+  
+  # Time increments
+  dt <- c(0, diff(tgrid))
+  
+  # Cumulative hazard
+  Htot <- cumsum(htot * dt)
+  
+  # Survival
+  S <- exp(-Htot)
+  
+  # Left-endpoint survival
+  S_left <- c(1, S[-length(S)])
+  
+  # CIF for cause 1
+  cif1 <- cumsum(S_left * h1 * dt)
+  
+  return(tail(cif1, 1))
+}
+
+data10$pred_10y_cif <- sapply(
+  seq_len(nrow(data10)),
+  get_cif_10y,
+  data  = data10,
+  fit1  = fit_inst.10,
+  fit2  = fit_death.10,
+  tgrid = tgrid
+)
+
+
+# ── 2. Naive 10-year failure probability (no competing risk adjustment) ────────
+nd_10y        <- data10
+nd_10y$year   <- 10
+
+data10$pred_10y_nocr <- predict(
+  fit_inst.10,
+  newdata = nd_10y,
+  type    = "fail"
+)
+
+stopifnot(all(data7$pred_10y_cif >= 0))
+stopifnot(all(data7$pred_10y_cif <= 1))
+
+H1 <- predict(fit_inst.10, type="cumhaz", newdata=data10)
+H2 <- predict(fit_death.10, type="cumhaz", newdata=data10)
+
+S  <- exp(-(H1 + H2))
+overall_event_prob <- 1 - S
+
+
+
+
+# ── 3. Plot ────────────────────────────────────────────────────────────────────
+
+par(pty = "s")
+plot(
+  data10$pred_10y_nocr,
+  data10$pred_10y_cif,
+  xlab = "Predicted risk (cause-specific, no competing risk)",
+  ylab = "Predicted CIF (competing risks adjusted)",
+  main = "Impact of competing risks on 7-year institutionalisation risk",
+  pch  = 16,
+  col  = adjustcolor("steelblue", 0.5),
+  xlim = c(0, 1),
+  ylim = c(0, 1)
+)
+abline(0, 1, col = "red", lwd = 2, lty = 2)
+
+
+```
